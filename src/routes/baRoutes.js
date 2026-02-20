@@ -1,13 +1,20 @@
-const express = require('express');
-const router = express.Router();
+const express      = require('express');
+const router       = express.Router();
 const baController = require('../controllers/baController');
-// Asumsi kamu punya middleware auth, jika belum ada bisa di-skip dulu
-// const { protect } = require('../middlewares/authMiddleware');
+const { protect, allowedRoles } = require('../middlewares/authMiddleware');
 
-// router.use(protect); // Protect semua route di bawah ini
+router.use(protect);
 
-router.post('/', (req, res) => baController.create(req, res));
-router.get('/', (req, res) => baController.getAll(req, res));
-router.get('/:id', (req, res) => baController.getDetail(req, res));
+/** @route POST /api/berita-acara        — Buat BA baru */
+router.post('/', allowedRoles('admin', 'petugas'), baController.create);
+
+/** @route GET  /api/berita-acara        — List semua BA */
+router.get('/', baController.getAll);
+
+/** @route GET  /api/berita-acara/:id    — Detail BA */
+router.get('/:id', baController.getDetail);
+
+/** @route GET  /api/berita-acara/:id/pdf — Generate & download PDF */
+router.get('/:id/pdf', baController.generatePdf);
 
 module.exports = router;
