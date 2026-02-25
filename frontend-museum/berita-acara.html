@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Berita Acara — Museum Aceh</title>
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=Source+Sans+3:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/sidebar.css">
+  <style>
+    .ba-layout {
+      display: grid;
+      grid-template-columns: 400px 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    @media (max-width: 1024px) {
+      .ba-layout { grid-template-columns: 1fr; }
+    }
+
+    .form-section-title {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--teks-sekunder);
+      padding: 12px 0 8px;
+      border-bottom: 1px solid var(--abu-border);
+      margin-bottom: 14px;
+    }
+
+    .lampiran-section {
+      display: none;
+    }
+
+    .item-count-badge {
+      background: var(--merah-utama);
+      color: white;
+      border-radius: 99px;
+      padding: 1px 8px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .switch-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .switch {
+      position: relative;
+      width: 44px;
+      height: 24px;
+    }
+
+    .switch input { display: none; }
+
+    .switch-track {
+      position: absolute;
+      inset: 0;
+      background: #CBD5E1;
+      border-radius: 99px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .switch-track::after {
+      content: '';
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      background: white;
+      border-radius: 50%;
+      top: 3px;
+      left: 3px;
+      transition: transform 0.2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+
+    .switch input:checked + .switch-track {
+      background: var(--merah-utama);
+    }
+
+    .switch input:checked + .switch-track::after {
+      transform: translateX(20px);
+    }
+
+    .ba-form-scroll {
+      max-height: calc(100vh - 200px);
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .ba-form-scroll::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .ba-form-scroll::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .ba-form-scroll::-webkit-scrollbar-thumb {
+      background: var(--abu-border);
+      border-radius: 2px;
+    }
+  </style>
+</head>
+<body>
+<div class="app-layout">
+  <div class="sidebar-overlay"></div>
+
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon">🏛️</div>
+      <div class="sidebar-logo-text">
+        <span class="logo-main">MUSEUM ACEH</span>
+        <span class="logo-sub">Sistem Inventaris</span>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <span class="nav-section-label">Menu Utama</span>
+      <a href="dashboard.html" class="nav-item">
+        <span class="nav-icon">📊</span><span class="nav-text">Dashboard</span>
+      </a>
+      <a href="koleksi.html" class="nav-item">
+        <span class="nav-icon">🏺</span><span class="nav-text">Input Koleksi</span>
+      </a>
+      <a href="berita-acara.html" class="nav-item active">
+        <span class="nav-icon">📋</span><span class="nav-text">Cetak/Download BA</span>
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <p class="sidebar-footer-version">v2.1.0 — Museum Aceh</p>
+    </div>
+  </aside>
+
+  <!-- ── Main Content ── -->
+  <main class="main-content">
+    <header class="topbar">
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="hamburger" id="hamburger-btn">
+          <span></span><span></span><span></span>
+        </button>
+        <div class="topbar-left">
+          <h1 class="page-title">Berita Acara</h1>
+          <p class="page-subtitle">Cetak & Download Berita Acara Museum Aceh</p>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="user-info">
+          <span id="user-name">Loading...</span>
+          <span id="user-role" class="badge-role">-</span>
+        </div>
+        <button onclick="logout()" class="btn-logout">🚪 Keluar</button>
+      </div>
+    </header>
+
+    <div class="page-content">
+      <div class="ba-layout">
+
+        <!-- ── PANEL KIRI: Form Buat BA ── -->
+        <div class="card" style="position:sticky;top:84px">
+          <div class="card-header">
+            <h3 class="card-title">✏️ Buat Berita Acara Baru</h3>
+          </div>
+          <div class="card-body ba-form-scroll">
+            <form id="form-ba" novalidate>
+
+              <!-- Nomor Surat -->
+              <div class="form-group">
+                <label class="form-label" for="nomor_surat">
+                  Nomor Surat <span class="required">*</span>
+                </label>
+                <input type="text" id="nomor_surat" class="form-control"
+                  placeholder="Contoh: 02/PENG/II/2026" required>
+              </div>
+
+              <!-- Jenis BA -->
+              <div class="form-group">
+                <label class="form-label" for="jenis_ba">
+                  Jenis BA <span class="required">*</span>
+                </label>
+                <select id="jenis_ba" class="form-control" required>
+                  <option value="">Pilih Jenis BA...</option>
+                  <option value="Pengembalian">Pengembalian</option>
+                  <option value="Peminjaman">Peminjaman</option>
+                  <option value="Serah Terima">Serah Terima</option>
+                  <option value="Pengiriman">Pengiriman</option>
+                </select>
+              </div>
+
+              <!-- Tanggal -->
+              <div class="form-group">
+                <label class="form-label" for="tanggal_serah_terima">
+                  Tanggal Serah Terima <span class="required">*</span>
+                </label>
+                <input type="date" id="tanggal_serah_terima" class="form-control" required>
+              </div>
+
+              <div class="form-section-title">👥 Pihak-Pihak</div>
+
+              <!-- Pihak Pertama -->
+              <div class="form-group">
+                <label class="form-label" for="pihak_pertama_id">
+                  Pihak Pertama <span class="required">*</span>
+                </label>
+                <select id="pihak_pertama_id" class="form-control" required>
+                  <option value="">Pilih Staff...</option>
+                </select>
+              </div>
+
+              <!-- Pihak Kedua -->
+              <div class="form-group">
+                <label class="form-label" for="pihak_kedua_id">
+                  Pihak Kedua <span class="required">*</span>
+                </label>
+                <select id="pihak_kedua_id" class="form-control" required>
+                  <option value="">Pilih Staff...</option>
+                </select>
+              </div>
+
+              <!-- Saksi row -->
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label" for="saksi1_id">Saksi 1</label>
+                  <select id="saksi1_id" class="form-control">
+                    <option value="">Pilih Saksi...</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="saksi2_id">Saksi 2</label>
+                  <select id="saksi2_id" class="form-control">
+                    <option value="">Pilih Saksi...</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-section-title">
+                <div style="display:flex;align-items:center;justify-content:space-between">
+                  <span>📦 Daftar Koleksi</span>
+                  <span class="item-count-badge" id="item-count">0</span>
+                </div>
+              </div>
+
+              <!-- Lampiran toggle -->
+              <div class="form-group">
+                <div class="switch-wrapper">
+                  <label class="switch">
+                    <input type="checkbox" id="toggle-lampiran">
+                    <span class="switch-track"></span>
+                  </label>
+                  <label for="toggle-lampiran" class="form-label" style="cursor:pointer;margin:0">
+                    Aktifkan Lampiran Koleksi
+                  </label>
+                </div>
+              </div>
+
+              <!-- Lampiran section -->
+              <div id="lampiran-section" class="lampiran-section">
+                <button type="button" class="btn btn-secondary btn-full" id="btn-tambah-koleksi" style="margin-bottom:14px">
+                  + Tambah Koleksi ke BA
+                </button>
+
+                <!-- Selected items table -->
+                <div class="table-wrapper" style="border:1px solid var(--abu-border);border-radius:8px;margin-bottom:14px">
+                  <table class="table" style="font-size:13px">
+                    <thead>
+                      <tr>
+                        <th>No. Inv</th>
+                        <th>Nama</th>
+                        <th>Kondisi</th>
+                        <th>Lokasi Tujuan</th>
+                        <th style="width:40px"></th>
+                      </tr>
+                    </thead>
+                    <tbody id="selected-items-table">
+                      <tr>
+                        <td colspan="5" class="table-empty">
+                          <div class="empty-icon">📦</div>
+                          <div class="empty-text">Belum ada koleksi</div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Submit -->
+              <button type="submit" class="btn btn-primary btn-full" id="btn-cetak" style="margin-top:8px">
+                🖨️ Buat & Cetak PDF
+              </button>
+
+            </form>
+          </div>
+        </div>
+
+        <!-- ── PANEL KANAN: List BA Tersimpan ── -->
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">📋 Berita Acara Tersimpan</h3>
+            <button onclick="loadBeritaAcaraList()" class="btn btn-ghost btn-sm" title="Refresh">🔄 Refresh</button>
+          </div>
+          <div class="table-wrapper">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>No. Surat</th>
+                  <th>Jenis BA</th>
+                  <th>Tanggal</th>
+                  <th>Pihak Pertama</th>
+                  <th>Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-ba-list">
+                <tr><td colspan="5" class="table-empty"><div class="empty-text">Memuat data...</div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/berita-acara.js"></script>
+</body>
+</html>
