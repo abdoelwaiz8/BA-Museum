@@ -1,6 +1,5 @@
 /* ============================================================
-   Museum Aceh — api.js
-   Semua fungsi komunikasi dengan backend
+   Museum Aceh — api.js  (FIXED)
    ============================================================ */
 
 const BASE_URL = 'http://localhost:5000/api';
@@ -9,9 +8,6 @@ function getToken() {
   return localStorage.getItem('token');
 }
 
-/**
- * Wrapper fetch ke API dengan auth header + error handling
- */
 async function apiFetch(endpoint, options = {}) {
   try {
     const res = await fetch(`${BASE_URL}${endpoint}`, {
@@ -29,26 +25,20 @@ async function apiFetch(endpoint, options = {}) {
       return null;
     }
 
-    const data = await res.json();
-    return data;
+    return await res.json();
   } catch (err) {
     console.error(`[API Error] ${endpoint}:`, err);
     throw new Error('Gagal terhubung ke server. Pastikan backend berjalan.');
   }
 }
 
-/**
- * Download PDF — gunakan blob, bukan apiFetch biasa
- */
 async function downloadPDF(id, nomorSurat) {
   try {
     const res = await fetch(`${BASE_URL}/berita-acara/${id}/pdf`, {
       headers: { 'Authorization': `Bearer ${getToken()}` }
     });
 
-    if (!res.ok) {
-      throw new Error(`Server mengembalikan status ${res.status}`);
-    }
+    if (!res.ok) throw new Error(`Server mengembalikan status ${res.status}`);
 
     const blob = await res.blob();
     const url  = URL.createObjectURL(blob);
@@ -65,57 +55,59 @@ async function downloadPDF(id, nomorSurat) {
   }
 }
 
-// ── API Endpoints ──────────────────────────────────────────────
-
 const API = {
-  // Auth
-  login: (body) => apiFetch('/auth/login', { method: 'POST', body: JSON.stringify(body) }),
-  getMe: () => apiFetch('/auth/me'),
+  login:  (body) => apiFetch('/auth/login', { method: 'POST', body: JSON.stringify(body) }),
+  getMe:  ()     => apiFetch('/auth/me'),
 
   // Koleksi
   getKoleksi: (params = {}) => {
     const qs = new URLSearchParams(
-      Object.fromEntries(Object.entries(params).filter(([,v]) => v !== '' && v !== null && v !== undefined))
+      Object.fromEntries(
+        Object.entries(params).filter(([, v]) => v !== '' && v !== null && v !== undefined)
+      )
     ).toString();
     return apiFetch(`/koleksi${qs ? '?' + qs : ''}`);
   },
-  getKoleksiById: (id) => apiFetch(`/koleksi/${id}`),
-  createKoleksi: (body) => apiFetch('/koleksi', { method: 'POST', body: JSON.stringify(body) }),
-  updateKoleksi: (id, body) => apiFetch(`/koleksi/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
-  deleteKoleksi: (id) => apiFetch(`/koleksi/${id}`, { method: 'DELETE' }),
 
-  // Staff
+  // FIXED: endpoint stats untuk agregasi SEMUA koleksi (bukan sample 500/1000)
+  getKoleksiStats: () => apiFetch('/koleksi/stats'),
+
+  getKoleksiById: (id)       => apiFetch(`/koleksi/${id}`),
+  createKoleksi:  (body)     => apiFetch('/koleksi', { method: 'POST', body: JSON.stringify(body) }),
+  updateKoleksi:  (id, body) => apiFetch(`/koleksi/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+  deleteKoleksi:  (id)       => apiFetch(`/koleksi/${id}`, { method: 'DELETE' }),
+
+  // Staff — FIXED: default limit 1000 agar semua staff ter-load
   getStaff: (params = {}) => {
+    const finalParams = { limit: 1000, ...params };
     const qs = new URLSearchParams(
-      Object.fromEntries(Object.entries(params).filter(([,v]) => v !== ''))
+      Object.fromEntries(
+        Object.entries(finalParams).filter(([, v]) => v !== '' && v !== null && v !== undefined)
+      )
     ).toString();
     return apiFetch(`/staff${qs ? '?' + qs : ''}`);
   },
 
-  // Berita Acara
-  getBeritaAcara: () => apiFetch('/berita-acara'),
-  getBeritaAcaraById: (id) => apiFetch(`/berita-acara/${id}`),
-  createBeritaAcara: (body) => apiFetch('/berita-acara', { method: 'POST', body: JSON.stringify(body) }),
+  getBeritaAcara:     ()       => apiFetch('/berita-acara'),
+  getBeritaAcaraById: (id)     => apiFetch(`/berita-acara/${id}`),
+  createBeritaAcara:  (body)   => apiFetch('/berita-acara', { method: 'POST', body: JSON.stringify(body) }),
 };
 
-// ── Toast Notification System ──────────────────────────────────
+// ── Toast ──────────────────────────────────────────────────────
 
-// Ensure container exists
 function getToastContainer() {
-  let container = document.getElementById('toast-container');
-  if (!container) {
-    container = document.createElement('div');
-    container.id = 'toast-container';
-    container.className = 'toast-container';
-    document.body.appendChild(container);
+  let c = document.getElementById('toast-container');
+  if (!c) {
+    c = document.createElement('div');
+    c.id = 'toast-container';
+    c.className = 'toast-container';
+    document.body.appendChild(c);
   }
-  return container;
+  return c;
 }
 
 function showToast(message, type = 'success') {
-  const container = getToastContainer();
   const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
-
   const toast = document.createElement('div');
   toast.className = `toast toast-${type}`;
   toast.innerHTML = `
@@ -123,9 +115,7 @@ function showToast(message, type = 'success') {
     <span class="toast-message">${message}</span>
     <button class="toast-dismiss" onclick="this.parentElement.remove()">✕</button>
   `;
-
-  container.appendChild(toast);
-
+  getToastContainer().appendChild(toast);
   setTimeout(() => {
     toast.style.opacity = '0';
     toast.style.transform = 'translateX(20px)';
@@ -134,18 +124,15 @@ function showToast(message, type = 'success') {
   }, 3500);
 }
 
-// ── Modal Konfirmasi Hapus ─────────────────────────────────────
+// ── Modal Hapus ────────────────────────────────────────────────
 
 function showModalHapus({ judul, nama, sub = null, onConfirm }) {
-  // Remove existing modal
-  const existing = document.getElementById('modal-hapus');
-  if (existing) existing.remove();
-
+  document.getElementById('modal-hapus')?.remove();
   const modal = document.createElement('div');
   modal.id = 'modal-hapus';
   modal.className = 'modal-overlay';
   modal.innerHTML = `
-    <div class="modal" style="max-width: 420px">
+    <div class="modal" style="max-width:420px">
       <div class="modal-header">
         <div style="display:flex;align-items:center;gap:10px">
           <span style="font-size:22px">🗑️</span>
@@ -158,10 +145,7 @@ function showModalHapus({ judul, nama, sub = null, onConfirm }) {
           <div class="delete-nama">${nama}</div>
           ${sub ? `<div class="delete-sub">${sub}</div>` : ''}
         </div>
-        <div class="delete-warning">
-          <span>⚠️</span>
-          <span>Tindakan ini tidak dapat dibatalkan.</span>
-        </div>
+        <div class="delete-warning"><span>⚠️</span><span>Tindakan ini tidak dapat dibatalkan.</span></div>
       </div>
       <div class="modal-footer">
         <button class="btn btn-ghost" onclick="document.getElementById('modal-hapus').remove()">Batal</button>
@@ -169,62 +153,51 @@ function showModalHapus({ judul, nama, sub = null, onConfirm }) {
       </div>
     </div>
   `;
-
   document.body.appendChild(modal);
   requestAnimationFrame(() => modal.classList.add('active'));
-
   document.getElementById('btn-confirm-hapus').addEventListener('click', async () => {
     modal.remove();
     await onConfirm();
   });
-
-  modal.addEventListener('click', (e) => {
-    if (e.target === modal) modal.remove();
-  });
+  modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
 }
 
-// ── Helpers ───────────────────────────────────────────────────
+// ── Helpers ────────────────────────────────────────────────────
 
 function formatDate(dateStr) {
   if (!dateStr) return '-';
-  const d = new Date(dateStr);
-  return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
+  return new Date(dateStr).toLocaleDateString('id-ID', {
+    day: '2-digit', month: 'long', year: 'numeric'
+  });
 }
 
 function timeAgo(dateStr) {
   if (!dateStr) return '';
-  const now = new Date();
-  const d = new Date(dateStr);
-  const diff = now - d;
+  const diff    = Date.now() - new Date(dateStr);
   const minutes = Math.floor(diff / 60000);
-  const hours = Math.floor(diff / 3600000);
-  const days = Math.floor(diff / 86400000);
-
-  if (minutes < 1) return 'baru saja';
+  const hours   = Math.floor(diff / 3600000);
+  const days    = Math.floor(diff / 86400000);
+  if (minutes < 1)  return 'baru saja';
   if (minutes < 60) return `${minutes} menit lalu`;
-  if (hours < 24) return `${hours} jam lalu`;
-  if (days < 30) return `${days} hari lalu`;
+  if (hours < 24)   return `${hours} jam lalu`;
+  if (days < 30)    return `${days} hari lalu`;
   return formatDate(dateStr);
 }
 
 function getBadgeKondisi(kondisi) {
   const map = {
-    'Baik': 'badge-baik',
+    'Baik':         'badge-baik',
     'Rusak Ringan': 'badge-rusak-ringan',
-    'Rusak Berat': 'badge-rusak-berat',
+    'Rusak Berat':  'badge-rusak-berat',
   };
-  return `<span class="badge ${map[kondisi] || 'badge-baik'}">${kondisi || '-'}</span>`;
+  return `<span class="badge ${map[kondisi] || 'badge-baik'}">${kondisi || 'Baik'}</span>`;
 }
 
 function debounce(fn, delay = 400) {
   let timer;
-  return (...args) => {
-    clearTimeout(timer);
-    timer = setTimeout(() => fn(...args), delay);
-  };
+  return (...args) => { clearTimeout(timer); timer = setTimeout(() => fn(...args), delay); };
 }
 
-// Skeleton row generator
 function skeletonRows(count = 5, cols = 6) {
   return Array(count).fill(0).map(() =>
     `<tr>${Array(cols).fill(0).map(() =>
