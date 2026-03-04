@@ -1,11 +1,7 @@
 const KoleksiRepository = require('../repositories/KoleksiRepository');
 const responseHandler   = require('../utils/responseHandler');
 
-// ─────────────────────────────────────────────────────────────────────────────
-
-/** GET /api/koleksi
- *  Query: ?jenis_koleksi=Etnografika&kondisi_terkini=Baik&q=baju&page=1&limit=20
- */
+/** GET /api/koleksi */
 exports.getAll = async (req, res) => {
   try {
     const result = await KoleksiRepository.findAllWithFilters(req.query);
@@ -15,7 +11,14 @@ exports.getAll = async (req, res) => {
   }
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
+exports.getStats = async (req, res) => {
+  try {
+    const result = await KoleksiRepository.getStats();
+    return responseHandler.sendSuccess(res, 200, 'Statistik koleksi.', result);
+  } catch (error) {
+    return responseHandler.sendError(res, 500, error.message);
+  }
+};
 
 /** GET /api/koleksi/:id */
 exports.getById = async (req, res) => {
@@ -28,36 +31,18 @@ exports.getById = async (req, res) => {
   }
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-
-/** POST /api/koleksi
- *
- *  Atribut sesuai Lampiran Data Koleksi pada dokumen BA:
- *  no_inventaris | nama_koleksi | jenis_koleksi | kondisi_terkini | lokasi_terkini (opsional)
- */
+/** POST /api/koleksi */
 exports.create = async (req, res) => {
   try {
-    const {
-      no_inventaris,
-      nama_koleksi,
-      jenis_koleksi,
-      kondisi_terkini,
-      lokasi_terkini,
-    } = req.body;
+    const { no_inventaris, nama_koleksi, jenis_koleksi, kondisi_terkini, lokasi_terkini } = req.body;
 
     if (!no_inventaris || !nama_koleksi) {
-      return responseHandler.sendError(
-        res, 400,
-        'Field no_inventaris dan nama_koleksi wajib diisi.'
-      );
+      return responseHandler.sendError(res, 400, 'Field no_inventaris dan nama_koleksi wajib diisi.');
     }
 
     const isDuplicate = await KoleksiRepository.isNoInventarisTaken(no_inventaris);
     if (isDuplicate) {
-      return responseHandler.sendError(
-        res, 409,
-        `No. inventaris '${no_inventaris}' sudah digunakan.`
-      );
+      return responseHandler.sendError(res, 409, `No. inventaris '${no_inventaris}' sudah digunakan.`);
     }
 
     const koleksi = await KoleksiRepository.create({
@@ -74,8 +59,6 @@ exports.create = async (req, res) => {
   }
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-
 /** PUT /api/koleksi/:id */
 exports.update = async (req, res) => {
   try {
@@ -87,21 +70,11 @@ exports.update = async (req, res) => {
     if (req.body.no_inventaris) {
       const isDuplicate = await KoleksiRepository.isNoInventarisTaken(req.body.no_inventaris, id);
       if (isDuplicate) {
-        return responseHandler.sendError(
-          res, 409,
-          `No. inventaris '${req.body.no_inventaris}' sudah digunakan koleksi lain.`
-        );
+        return responseHandler.sendError(res, 409, `No. inventaris '${req.body.no_inventaris}' sudah digunakan koleksi lain.`);
       }
     }
 
-    // Field yang boleh diupdate
-    const allowedFields = [
-      'no_inventaris',
-      'nama_koleksi',
-      'jenis_koleksi',
-      'kondisi_terkini',
-      'lokasi_terkini',
-    ];
+    const allowedFields = ['no_inventaris', 'nama_koleksi', 'jenis_koleksi', 'kondisi_terkini', 'lokasi_terkini'];
     const payload = {};
     allowedFields.forEach((field) => {
       if (req.body[field] !== undefined) payload[field] = req.body[field];
@@ -114,8 +87,6 @@ exports.update = async (req, res) => {
   }
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-
 /** DELETE /api/koleksi/:id */
 exports.remove = async (req, res) => {
   try {
@@ -125,11 +96,7 @@ exports.remove = async (req, res) => {
     if (!existing) return responseHandler.sendError(res, 404, 'Koleksi tidak ditemukan.');
 
     await KoleksiRepository.delete(id);
-    return responseHandler.sendSuccess(
-      res, 200,
-      `Koleksi '${existing.nama_koleksi}' berhasil dihapus.`,
-      null
-    );
+    return responseHandler.sendSuccess(res, 200, `Koleksi '${existing.nama_koleksi}' berhasil dihapus.`, null);
   } catch (error) {
     return responseHandler.sendError(res, 500, error.message);
   }

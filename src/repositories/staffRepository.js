@@ -23,6 +23,8 @@ class StaffRepository extends BaseRepository {
     if (jabatan) filters.jabatan = jabatan;
 
     return this.findAll(filters, {
+      orderBy:      'nama',
+      ascending:    true,
       searchColumn: q ? 'nama' : null,
       searchValue:  q || null,
       page,

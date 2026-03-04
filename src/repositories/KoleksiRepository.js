@@ -5,44 +5,63 @@ class KoleksiRepository extends BaseRepository {
     super('koleksi');
   }
 
-  /**
-   * Ambil semua koleksi dengan filter dinamis dari query params.
-   * Sesuai lampiran BA: no_inventaris, nama_koleksi, jenis_koleksi, kondisi_terkini
-   *
-   * Contoh: ?jenis_koleksi=Etnografika&kondisi_terkini=Baik&q=baju&page=1&limit=20
-   * @param {Object} queryParams - req.query dari Express
-   */
   async findAllWithFilters(queryParams) {
     const {
       jenis_koleksi,
       kondisi_terkini,
       lokasi_terkini,
       q,
-      page      = 1,
-      limit     = 20,
-      sort_by   = 'no_inventaris',
+      page       = 1,
+      limit      = 20,
+      sort_by    = 'no_inventaris',
       sort_order = 'asc',
     } = queryParams;
 
-    const filters = {};
-    if (jenis_koleksi)   filters.jenis_koleksi   = jenis_koleksi;
-    if (kondisi_terkini) filters.kondisi_terkini = kondisi_terkini;
-    if (lokasi_terkini)  filters.lokasi_terkini  = lokasi_terkini;
+    let query = this.db
+      .from(this.tableName)
+      .select('*', { count: 'exact' });
 
-    return this.findAll(filters, {
-      orderBy:       sort_by,
-      ascending:     sort_order === 'asc',
-      page,
-      limit,
-      searchColumn:  q ? 'nama_koleksi' : null,
-      searchValue:   q || null,
-    });
+    if (jenis_koleksi)   query = query.eq('jenis_koleksi', jenis_koleksi);
+    if (kondisi_terkini) query = query.eq('kondisi_terkini', kondisi_terkini);
+    if (lokasi_terkini)  query = query.ilike('lokasi_terkini', `%${lokasi_terkini}%`);
+
+    // FIXED: OR search — nama_koleksi ATAU no_inventaris
+    if (q && q.trim()) {
+      const keyword = q.trim();
+      query = query.or(
+        `nama_koleksi.ilike.%${keyword}%,no_inventaris.ilike.%${keyword}%`
+      );
+    }
+
+    const validSortCols = [
+      'no_inventaris', 'nama_koleksi', 'jenis_koleksi',
+      'kondisi_terkini', 'lokasi_terkini', 'created_at',
+    ];
+    const sortCol = validSortCols.includes(sort_by) ? sort_by : 'no_inventaris';
+    query = query.order(sortCol, { ascending: sort_order !== 'desc' });
+
+    const pageNum  = Math.max(1, parseInt(page)  || 1);
+    const limitNum = Math.min(1000, Math.max(1, parseInt(limit) || 20));
+    const from     = (pageNum - 1) * limitNum;
+    const to       = from + limitNum - 1;
+    query          = query.range(from, to);
+
+    const { data, error, count } = await query;
+    if (error) throw error;
+
+    return {
+      data,
+      meta: {
+        total:      count,
+        page:       pageNum,
+        limit:      limitNum,
+        totalPages: Math.ceil(count / limitNum),
+      },
+    };
   }
 
   /**
    * Cek apakah no_inventaris sudah dipakai (validasi unik)
-   * @param {string}      noInventaris
-   * @param {string|null} excludeId - dikecualikan saat update
    */
   async isNoInventarisTaken(noInventaris, excludeId = null) {
     let query = this.db
@@ -54,6 +73,47 @@ class KoleksiRepository extends BaseRepository {
 
     const { data } = await query.single();
     return !!data;
+  }
+
+  
+  async getStats() {
+    const { data, error } = await this.db
+      .from(this.tableName)
+      .select('jenis_koleksi, kondisi_terkini')
+      // ── FIXED: tambah limit tinggi agar dapat semua 4776+ baris ──
+      .limit(99999);
+
+    if (error) throw error;
+
+    const jenisMap   = {};
+    const kondisiMap = { Baik: 0, 'Rusak Ringan': 0, 'Rusak Berat': 0 };
+
+    (data || []).forEach((item) => {
+      // Jenis
+      const jenis = item.jenis_koleksi || 'Tidak Diketahui';
+      jenisMap[jenis] = (jenisMap[jenis] || 0) + 1;
+
+      const kondisi = item.kondisi_terkini || 'Baik';
+      if (kondisi in kondisiMap) {
+        kondisiMap[kondisi]++;
+      } else {
+        // Kondisi lain yg tidak dikenal, masukkan ke Baik
+        kondisiMap['Baik']++;
+      }
+    });
+
+    const byJenis = Object.entries(jenisMap)
+      .sort(([, a], [, b]) => b - a)
+      .map(([jenis_koleksi, total]) => ({ jenis_koleksi, total }));
+
+    return {
+      total: data.length,
+      byJenis,
+      byKondisi:    kondisiMap,
+      jenisOptions: byJenis
+        .filter((j) => j.jenis_koleksi !== 'Tidak Diketahui')
+        .map((j) => j.jenis_koleksi),
+    };
   }
 }
 

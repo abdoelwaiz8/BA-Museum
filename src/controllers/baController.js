@@ -3,10 +3,7 @@ const responseHandler = require('../utils/responseHandler');
 const { generateBAHtml } = require('../utils/baTemplate');
 const { htmlToPdf }      = require('../utils/pdfGenerator');
 
-// Jenis Berita Acara yang valid
 const JENIS_BA_VALID = ['Pengembalian', 'Peminjaman', 'Serah Terima', 'Pengiriman'];
-
-// ─────────────────────────────────────────────────────────────────────────────
 
 /** POST /api/berita-acara */
 exports.create = async (req, res) => {
@@ -27,35 +24,32 @@ exports.create = async (req, res) => {
         `jenis_ba tidak valid. Pilihan: ${JENIS_BA_VALID.join(', ')}.`);
     }
 
-    if (!Array.isArray(items) || items.length === 0) {
-      return responseHandler.sendError(res, 400, 'Minimal harus ada 1 koleksi dalam Berita Acara.');
-    }
+    // Items boleh kosong jika lampiran tidak diaktifkan
+    const itemsArray = Array.isArray(items) ? items : [];
 
-    for (const [index, item] of items.entries()) {
+    for (const [index, item] of itemsArray.entries()) {
       if (!item.koleksi_id || !item.kondisi) {
         return responseHandler.sendError(res, 400,
           `Item ke-${index + 1} tidak lengkap. Wajib ada: koleksi_id dan kondisi.`);
       }
     }
 
+    // FIXED: hapus 'dibuat_oleh' — kolom ini tidak ada di tabel berita_acara
+    // Error sebelumnya: "Could not find the 'dibuat_oleh' column in the schema cache"
     const headerData = {
       nomor_surat, jenis_ba, tanggal_serah_terima,
       pihak_pertama_id, pihak_kedua_id,
-      saksi1_id:   saksi1_id   || null,
-      saksi2_id:   saksi2_id   || null,
-      dibuat_oleh: req.user?.id || null,
+      saksi1_id: saksi1_id || null,
+      saksi2_id: saksi2_id || null,
     };
 
-    const result = await BARepository.createBATransaction(headerData, items);
+    const result = await BARepository.createBATransaction(headerData, itemsArray);
     return responseHandler.sendSuccess(res, 201, 'Berita Acara berhasil dibuat.', result);
-
   } catch (error) {
     console.error('[BA Create Error]', error.message);
     return responseHandler.sendError(res, 500, error.message);
   }
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
 
 /** GET /api/berita-acara */
 exports.getAll = async (req, res) => {
@@ -66,8 +60,6 @@ exports.getAll = async (req, res) => {
     return responseHandler.sendError(res, 500, error.message);
   }
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
 
 /** GET /api/berita-acara/:id */
 exports.getDetail = async (req, res) => {
@@ -80,36 +72,20 @@ exports.getDetail = async (req, res) => {
   }
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * GET /api/berita-acara/:id/pdf
- * Generate dan kirim file PDF Berita Acara langsung ke client.
- * Format output persis seperti dokumen resmi Museum Aceh.
- */
+/** GET /api/berita-acara/:id/pdf */
 exports.generatePdf = async (req, res) => {
   try {
-    const { id } = req.params;
+    const baData = await BARepository.getFullDetail(req.params.id);
+    if (!baData) return responseHandler.sendError(res, 404, 'Berita Acara tidak ditemukan.');
 
-    // 1. Ambil data lengkap BA dari database
-    const baData = await BARepository.getFullDetail(id);
-    if (!baData) {
-      return responseHandler.sendError(res, 404, 'Berita Acara tidak ditemukan.');
-    }
-
-    // 2. Render HTML dari template
     const htmlContent = generateBAHtml(baData);
+    const pdfBuffer   = await htmlToPdf(htmlContent);
 
-    // 3. Konversi HTML ke PDF
-    const pdfBuffer = await htmlToPdf(htmlContent);
-
-    // 4. Kirim sebagai file download
     const namaFile = `BA_${baData.nomor_surat.replace(/\//g, '-')}.pdf`;
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${namaFile}"`);
     res.setHeader('Content-Length', pdfBuffer.length);
     return res.end(pdfBuffer);
-
   } catch (error) {
     console.error('[BA PDF Error]', error.message);
     return responseHandler.sendError(res, 500, `Gagal generate PDF: ${error.message}`);
