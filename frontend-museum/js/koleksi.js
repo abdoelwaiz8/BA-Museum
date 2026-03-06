@@ -1,8 +1,3 @@
-/* ============================================================
-   Museum Aceh — koleksi.js  (FIXED)
-   - Dropdown jenis: getKoleksiStats() → semua 10 jenis
-   - Search: nama_koleksi ATAU no_inventaris (fix di backend)
-   ============================================================ */
 
 requireAuth();
 
