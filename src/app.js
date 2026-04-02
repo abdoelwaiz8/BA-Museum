@@ -13,7 +13,8 @@ const { notFound, errorHandler } = require('./utils/errorHandler');
 const authRoutes    = require('./routes/authRoutes');
 const staffRoutes   = require('./routes/staffRoutes');
 const koleksiRoutes = require('./routes/koleksiRoutes');
-const baRoutes      = require('./routes/baRoutes');
+const baRoutes         = require('./routes/baRoutes');
+const perawatanRoutes  = require('./routes/perawatanRoutes');
 
 const app = express();
 
@@ -44,6 +45,7 @@ app.use('/api/auth',         authRoutes);
 app.use('/api/staff',        staffRoutes);
 app.use('/api/koleksi',      koleksiRoutes);
 app.use('/api/berita-acara', baRoutes);
+app.use('/api/perawatan',    perawatanRoutes);
 
 // ── Error Handling ────────────────────────────────────────────────────────────
 app.use(notFound);

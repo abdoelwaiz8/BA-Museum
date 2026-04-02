@@ -11,10 +11,16 @@ router.post('/', allowedRoles('admin', 'petugas'), baController.create);
 /** @route GET  /api/berita-acara        — List semua BA */
 router.get('/', baController.getAll);
 
+/** @route GET /api/berita-acara/status-pinjam — Get Status Peminjaman */
+router.get('/status-pinjam', baController.getStatusPinjam);
+
 /** @route GET  /api/berita-acara/:id    — Detail BA */
 router.get('/:id', baController.getDetail);
 
 /** @route GET  /api/berita-acara/:id/pdf — Generate & download PDF */
 router.get('/:id/pdf', baController.generatePdf);
+
+/** @route DELETE /api/berita-acara/:id   — Delete BA */
+router.delete('/:id', allowedRoles('admin'), baController.remove);
 
 module.exports = router;

@@ -107,3 +107,25 @@ exports.generatePdf = async (req, res) => {
     return responseHandler.sendError(res, 500, `Gagal generate PDF: ${error.message}`);
   }
 };
+
+/** DELETE /api/berita-acara/:id */
+exports.remove = async (req, res) => {
+  try {
+    await BARepository.deleteBA(req.params.id);
+    return responseHandler.sendSuccess(res, 200, 'Berita Acara berhasil dihapus.');
+  } catch (error) {
+    console.error('[BA Delete Error]', error.message);
+    return responseHandler.sendError(res, 500, `Gagal menghapus BA: ${error.message}`);
+  }
+};
+
+/** GET /api/berita-acara/status-pinjam */
+exports.getStatusPinjam = async (req, res) => {
+  try {
+    const data = await BARepository.findStatusPinjam();
+    return responseHandler.sendSuccess(res, 200, 'Data Status Peminjaman', data);
+  } catch (error) {
+    console.error('[Status Pinjam Error]', error.message);
+    return responseHandler.sendError(res, 500, error.message);
+  }
+};
