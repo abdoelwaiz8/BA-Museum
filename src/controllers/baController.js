@@ -3,7 +3,7 @@ const responseHandler = require('../utils/responseHandler');
 const { generateBAHtml } = require('../utils/baTemplate');
 const { htmlToPdf }      = require('../utils/pdfGenerator');
 
-const JENIS_BA_VALID = ['Pengembalian', 'Peminjaman', 'Serah Terima', 'Pengiriman'];
+const JENIS_BA_VALID = ['Penyerahan', 'Pengembalian'];
 
 /** POST /api/berita-acara */
 exports.create = async (req, res) => {
