@@ -118,14 +118,4 @@ exports.remove = async (req, res) => {
     return responseHandler.sendError(res, 500, `Gagal menghapus BA: ${error.message}`);
   }
 };
-
-/** GET /api/berita-acara/status-pinjam */
-exports.getStatusPinjam = async (req, res) => {
-  try {
-    const data = await BARepository.findStatusPinjam();
-    return responseHandler.sendSuccess(res, 200, 'Data Status Peminjaman', data);
-  } catch (error) {
-    console.error('[Status Pinjam Error]', error.message);
-    return responseHandler.sendError(res, 500, error.message);
-  }
-};
+

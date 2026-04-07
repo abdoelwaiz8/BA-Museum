@@ -35,7 +35,8 @@ function nipLine(nip) {
   return `<div class="ttd-nip">NIP. ${nip}</div>`;
 }
 
-const LOGO_PANCACITA = 'data:image/png;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/wAARCAJYAlgDASIAAhEBAxEB/8QAHQABAAMAAwEBAQAAAAAAAAAAAAYHCAMEBQIBCf/EAGAQAAEEAQIDAgkGCQYJCQcDBQEAAgMEBQYRBxIhEzEIFCJBUWFxgZEykqGxwdEVFyMzQlJWcoJDYqKywtIWJDVEU1Vjk5QYJTQ3VHN0leE2RUZ1g7PwJidl8WSEhaP/xAAcAQEAAgMBAQEAAAAAAAAAAAAABAYDBQcCAQj/xABIEQABAwICBQgIAwUGBwADAAABAAIDBBEFIQYSMUFRE2FxgZGhsdEUFiIyUsHh8CMzQgcVYnKSJDSCotLxJUNTg5Oywhc1c//aAAwDAQACEQMRAD8A2WiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIi47M8FaF09maOGJg3c+Rwa0D1kqJQ8UNAS5b8Fx6npGzzco3DhGT6O0I5PpXwuA2lYpJ4oiA9wF+Jspii+Y3skY2SN7XscNw5p3BC+l9WVERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERUX1lr7Smk43fhjLRNnA3FaI88rv4R3e/ZUZrnwgszfMlXS9NuMrnoLEuz5j6wPkt+lYnzMZtK1lbi9LR5SOueAzP30rQ+otQ4TT1M281k61GLzGV+xd7B3n3Kltb+EPWi562ksaZ3dwt2xyt9rWDqfeR7FRX/6h1XmP/eGYyEp/nSvP3D6FaeifB+z2R5LOpbceJrnr2Me0kxH9Vv0+xRjNJJkwKuvxjEMQOpRssOP12BVrqnV+ptV2efM5Wzb3d5EIO0bT6AwdPoX3PofWEGHbl5dOZJlJ3XtDAeg9JHeB6yNlrjRfDfSGk2tfjMVG+0B1tWPykp957vdspcvopCc3HNZItF3ygvqZfaPDPvO1Yh0bxB1ZpKQDEZWVsAPlVpvykR/hPd7tleOiPCDwt7kanpPxk56GxDvJCT6x8pv0qa618V6N1Vzy28a2pcd/nVTaN+/pIHR3vCo7W3AXVGI7SxgpI81VHUMb5E4H7p6H3H3LyacW9O6pIi1KLlWfp4qimiqfOPan6fHUREW9ERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERP/9k=';
+// Logo Pancacita (Pemerintah Aceh) — loaded via URL by Puppeteer (networkidle0)
+const LOGO_PANCACITA = 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Coat_of_arms_of_Aceh.svg/300px-Coat_of_arms_of_Aceh.svg.png';
 
 function buatBarisKoleksi(items) {
   return items.map((item, i) => `
@@ -58,22 +59,22 @@ function generateBAHtml(ba) {
   const jumlah     = ba.items?.length || 0;
   const jumlahKata = angkaKeKata(jumlah);
   const jenis      = ba.jenis_ba || 'Penyerahan';
-  const jenisKoleksi = ba.items?.[0]?.koleksi?.jenis_koleksi || 'Etnografika';
 
   /* ── Paragraf pembuka & Pasal 1 berbeda per jenis ── */
   let paragrafPembuka, pasal1;
   if (jenis === 'Penyerahan') {
     paragrafPembuka = `PIHAK PERTAMA telah melakukan penyerahan koleksi kepada PIHAK KEDUA
-      sebanyak ${jumlah} (${jumlahKata}) koleksi ${jenisKoleksi} untuk di Konservasi
+      sebanyak ${jumlah} (${jumlahKata}) koleksi untuk di Konservasi
       dengan ketentuan sebagai berikut:`;
-    pasal1 = `PIHAK PERTAMA menyerahkan koleksi (daftar dan identitas koleksi terlampir)
-      kepada PIHAK KEDUA dan PIHAK KEDUA telah menerima koleksi tersebut.`;
+    pasal1 = `PIHAK PERTAMA menyerahkan sebanyak ${jumlah} (${jumlahKata}) koleksi
+      (daftar dan identitas koleksi terlampir) kepada PIHAK KEDUA dan PIHAK KEDUA
+      telah menerima koleksi tersebut.`;
   } else {
     // Pengembalian
     paragrafPembuka = `PIHAK PERTAMA telah melakukan Pengembalian Koleksi setelah dikonservasi
       kepada PIHAK KEDUA untuk disimpan kembali pada ruang penyimpanan koleksi
       dengan ketentuan sebagai berikut:`;
-    pasal1 = `PIHAK PERTAMA mengembalikan koleksi sebanyak ${jumlah} (${jumlahKata}) koleksi ${jenisKoleksi}
+    pasal1 = `PIHAK PERTAMA mengembalikan sebanyak ${jumlah} (${jumlahKata}) koleksi
       (daftar dan identitas koleksi terlampir) kepada PIHAK KEDUA dan PIHAK KEDUA
       telah menerima koleksi tersebut.`;
   }
@@ -81,21 +82,18 @@ function generateBAHtml(ba) {
   /* ── Blok tanda tangan saksi ── */
   const adaSaksi = ba.saksi1 || ba.saksi2;
   const saksiHtml = adaSaksi ? `
-    <div class="saksi-wrap">
-      <div class="saksi-row">
-        <div class="saksi-col kiri">
-          ${ba.saksi1 ? `
-            <div class="ttd-spasi"></div>
-            <div class="ttd-nama">${ba.saksi1.nama}</div>
-            ${nipLine(ba.saksi1.nip)}` : ''}
-        </div>
-        <div class="saksi-col mid">Saksi-saksi:</div>
-        <div class="saksi-col kanan">
-          ${ba.saksi2 ? `
-            <div class="ttd-spasi"></div>
-            <div class="ttd-nama">${ba.saksi2.nama}</div>
-            ${nipLine(ba.saksi2.nip)}` : ''}
-        </div>
+    <div class="ttd-row" style="margin-top: 10px;">
+      <div class="ttd-col kiri">
+        ${ba.saksi1 ? `
+          <div class="ttd-label">Saksi 1,</div>
+          <div class="ttd-nama"><u><b>${ba.saksi1.nama}</b></u></div>
+          ${nipLine(ba.saksi1.nip)}` : ''}
+      </div>
+      <div class="ttd-col kanan">
+        ${ba.saksi2 ? `
+          <div class="ttd-label">Saksi 2,</div>
+          <div class="ttd-nama"><u><b>${ba.saksi2.nama}</b></u></div>
+          ${nipLine(ba.saksi2.nip)}` : ''}
       </div>
     </div>` : '';
 
@@ -200,7 +198,7 @@ function generateBAHtml(ba) {
      sejajar di Puppeteer (bukan flexbox)
   ──────────────────────────────────────────────── */
   .ttd-wrap {
-    margin-top: 20px;
+    margin-top: 15px;
     page-break-inside: avoid;
     break-inside: avoid;
   }
@@ -210,60 +208,36 @@ function generateBAHtml(ba) {
     display: table;
     width: 100%;
     table-layout: fixed;
+    margin-bottom: 10px;
   }
   .ttd-col {
     display: table-cell;
     vertical-align: top;
     width: 50%;
-    text-align: center;
   }
-  .ttd-col.right-col {
+  .ttd-col.kiri {
+    text-align: left;
+    padding-left: 10px;
+  }
+  .ttd-col.kanan {
     text-align: right;
+    padding-right: 10px;
   }
 
-  .ttd-blok {
-    display: inline-block;
-    text-align: center;
-    min-width: 180px;
-  }
-
-  /* Label (PIHAK PERTAMA / PIHAK KEDUA) + ruang 60px */
   .ttd-label {
-    font-size: 12pt;
-    margin-bottom: 65px;   /* ruang tanda tangan */
+    font-size: 11pt;
+    margin-bottom: 50px;   /* ruang tanda tangan */
   }
   .ttd-kota {
-    font-size: 12pt;
+    font-size: 11pt;
     margin-bottom: 2px;
-    text-align: center;
   }
   .ttd-nama {
-    font-weight: bold;
-    text-decoration: underline;
-    font-size: 12pt;
+    font-size: 11pt;
   }
-  .ttd-nip { font-size: 11pt; }
-
-  /* ── Baris Saksi ── */
-  .saksi-wrap {
-    margin-top: 16px;
-    page-break-inside: avoid;
-    break-inside: avoid;
+  .ttd-nip {
+    font-size: 11pt;
   }
-  .saksi-row {
-    display: table;
-    width: 100%;
-    table-layout: fixed;
-  }
-  .saksi-col {
-    display: table-cell;
-    vertical-align: top;
-    text-align: center;
-  }
-  .saksi-col.kiri  { width: 40%; }
-  .saksi-col.mid   { width: 20%; font-size: 11pt; padding-top: 2px; vertical-align: top; }
-  .saksi-col.kanan { width: 40%; }
-  .ttd-spasi { height: 65px; }   /* ruang tanda tangan saksi */
 
   /* ── LAMPIRAN ─────────────────────────── */
   .lj {
@@ -380,21 +354,17 @@ function generateBAHtml(ba) {
     <!-- Baris 1: Pihak Kedua (kiri) & Pihak Pertama (kanan) -->
     <div class="ttd-row">
       <!-- KIRI: Pihak Kedua -->
-      <div class="ttd-col">
-        <div class="ttd-blok">
-          <div class="ttd-label">PIHAK KEDUA,</div>
-          <div class="ttd-nama">${ba.pihak2?.nama||'-'}</div>
-          ${nipLine(ba.pihak2?.nip)}
-        </div>
+      <div class="ttd-col kiri">
+        <div class="ttd-label">PIHAK KEDUA,</div>
+        <div class="ttd-nama"><u><b>${ba.pihak2?.nama||'-'}</b></u></div>
+        ${nipLine(ba.pihak2?.nip)}
       </div>
       <!-- KANAN: Banda Aceh + Pihak Pertama -->
-      <div class="ttd-col right-col">
-        <div class="ttd-blok">
-          <div class="ttd-kota">Banda Aceh, ${tglPendek_}</div>
-          <div class="ttd-label">PIHAK PERTAMA,</div>
-          <div class="ttd-nama">${ba.pihak1?.nama||'-'}</div>
-          ${nipLine(ba.pihak1?.nip)}
-        </div>
+      <div class="ttd-col kanan">
+        <div class="ttd-kota">Banda Aceh, ${tglPendek_}</div>
+        <div class="ttd-label">PIHAK PERTAMA,</div>
+        <div class="ttd-nama"><u><b>${ba.pihak1?.nama||'-'}</b></u></div>
+        ${nipLine(ba.pihak1?.nip)}
       </div>
     </div>
 
@@ -410,7 +380,6 @@ function generateBAHtml(ba) {
 ═══════════════════════════════════════ -->
 <div class="pg2">
   <div class="lj">Lampiran Data Koleksi</div>
-  <div class="ls">Daftar Koleksi ${jenisKoleksi}</div>
   <table class="tk-tbl">
     <thead>
       <tr>

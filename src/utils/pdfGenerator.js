@@ -15,8 +15,8 @@ async function htmlToPdf(htmlContent) {
     const page = await browser.newPage();
 
     await page.setContent(htmlContent, {
-      waitUntil: 'domcontentloaded',
-      timeout: 30000,
+      waitUntil: 'networkidle0',
+      timeout: 60000,
     });
 
     // Beri waktu render selesai sebelum print

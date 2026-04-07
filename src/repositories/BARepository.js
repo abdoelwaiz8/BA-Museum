@@ -144,65 +144,6 @@ class BARepository extends BaseRepository {
   }
 
   /**
-   * Status Peminjaman (mengambil item koleksi yang BA-nya Peminjaman/Pengiriman)
-   */
-  async findStatusPinjam() {
-    const { data, error } = await this.db
-      .from('berita_acara')
-      .select(`
-        id,
-        nomor_surat,
-        jenis_ba,
-        tanggal_serah_terima,
-        pihak_kedua_id,
-        pihak_kedua_ext,
-        pihak2:pihak_kedua_id(nama, jabatan),
-        items:ba_items(
-          id,
-          kondisi_saat_transaksi,
-          koleksi:koleksi_id(no_inventaris, nama_koleksi, jenis_koleksi)
-        )
-      `)
-      .in('jenis_ba', ['Peminjaman', 'Pengiriman']);
-      
-    if (error) throw error;
-
-    let result = [];
-    // Reset hours to start of day for accurate comparison
-    const tglSekarang = new Date();
-    tglSekarang.setHours(0, 0, 0, 0);
-
-    for (const ba of data) {
-      const b = this._normalizePihak(ba);
-      const isInternal = !!ba.pihak_kedua_id;
-      
-      const tglPinjam = new Date(b.tanggal_serah_terima);
-      tglPinjam.setHours(0, 0, 0, 0);
-      const diffTime = tglSekarang - tglPinjam;
-      const durasi_hari = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
-
-      for (const item of (b.items || [])) {
-        if (!item.koleksi) continue; // safety check
-        result.push({
-          ba_id: b.id,
-          nomor_surat: b.nomor_surat,
-          tanggal_serah_terima: b.tanggal_serah_terima,
-          peminjam: b.pihak2,
-          isInternal,
-          durasi_hari,
-          item_id: item.id,
-          kondisi_saat_transaksi: item.kondisi_saat_transaksi,
-          koleksi: item.koleksi
-        });
-      }
-    }
-    
-    // Urutkan durasi terlama di atas
-    result.sort((a, b) => b.durasi_hari - a.durasi_hari);
-    return result;
-  }
-
-  /**
    * Menghapus Berita Acara beserta items-nya
    */
   async deleteBA(id) {
