@@ -1,3 +1,12 @@
+/**
+ * Museum Aceh — baTemplate.js v6.0.0
+ * Logo Pancacita di-embed sebagai base64 (tidak butuh jaringan)
+ * Layout kop & TTD sesuai dokumen asli (penyerahan_ba.pdf & pengembalian_ba.pdf)
+ * - Kop: Logo kiri, teks kanan (PEMERINTAH ACEH / DINAS / MUSEUM ACEH besar)
+ * - TTD: PIHAK KEDUA kiri, tanggal+PIHAK PERTAMA kanan
+ * - Saksi-saksi: label "Saksi-saksi:" di tengah baris penuh, nama kiri & kanan
+ */
+
 const HARI    = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
 const BULAN   = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 const SATUAN  = ['','Satu','Dua','Tiga','Empat','Lima','Enam','Tujuh','Delapan','Sembilan','Sepuluh','Sebelas','Dua Belas','Tiga Belas','Empat Belas','Lima Belas','Enam Belas','Tujuh Belas','Delapan Belas','Sembilan Belas'];
