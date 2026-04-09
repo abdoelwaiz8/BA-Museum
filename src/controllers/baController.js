@@ -10,10 +10,11 @@ exports.create = async (req, res) => {
   try {
     const {
       nomor_surat, jenis_ba, tanggal_serah_terima,
+      keperluan,
       pihak_pertama_id,
-      pihak_kedua_id,   pihak_kedua_ext,   // salah satu wajib ada
+      pihak_kedua_id,   pihak_kedua_ext,
       saksi1_id,
-      saksi2_id,        saksi2_ext,         // opsional, salah satu
+      saksi2_id,        saksi2_ext,
       items,
     } = req.body;
 
@@ -23,7 +24,7 @@ exports.create = async (req, res) => {
         'Field nomor_surat, jenis_ba, tanggal_serah_terima, dan pihak_pertama_id wajib diisi.');
     }
 
-    // Pihak Kedua: harus ada salah satu (internal ID atau data eksternal)
+    // Pihak Kedua: harus ada salah satu
     const p2HasInternal = !!pihak_kedua_id;
     const p2HasExternal = pihak_kedua_ext && pihak_kedua_ext.nama;
     if (!p2HasInternal && !p2HasExternal) {
@@ -50,8 +51,10 @@ exports.create = async (req, res) => {
       nomor_surat,
       jenis_ba,
       tanggal_serah_terima,
+      // ── PERUBAHAN: simpan keperluan, default 'Konservasi' ─────
+      keperluan: keperluan || 'Konservasi',
+      // ─────────────────────────────────────────────────────────
       pihak_pertama_id,
-      // Simpan sebagai JSON jika eksternal
       pihak_kedua_id:    p2HasInternal ? pihak_kedua_id : null,
       pihak_kedua_ext:   p2HasExternal ? JSON.stringify(pihak_kedua_ext) : null,
       saksi1_id:         saksi1_id || null,
@@ -118,4 +121,3 @@ exports.remove = async (req, res) => {
     return responseHandler.sendError(res, 500, `Gagal menghapus BA: ${error.message}`);
   }
 };
-
