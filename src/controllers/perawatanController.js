@@ -17,52 +17,28 @@ exports.getAvailableBA = async (req, res) => {
 /** POST /api/perawatan */
 exports.create = async (req, res) => {
   try {
-    const {
-      kode_perawatan,
-      ba_id,
-      asal_koleksi,
-      jenis_bahan,
-      klasifikasi_koleksi,
-      material_bahan,
-      kondisi_koleksi,
-      faktor_kerusakan,
-      teknis_penanganan,
-      metode_perawatan,
-      metode_bahan,
-      alat_digunakan,
-      bahan_digunakan,
-      bahan_pembungkus,
-      bahan_pengawet,
-      petugas_konservasi,
-      pendataan
-    } = req.body;
-
-    if (!kode_perawatan || !ba_id) {
-      return responseHandler.sendError(res, 400, 'kode_perawatan dan ba_id wajib diisi.');
+    const payload = req.body;
+    
+    if (!payload.mode || !['individu', 'lampiran'].includes(payload.mode)) {
+      return responseHandler.sendError(res, 400, 'Mode tidak valid (harus individu atau lampiran)');
     }
 
-    const payload = {
-      kode_perawatan,
-      ba_id,
-      asal_koleksi,
-      jenis_bahan,
-      klasifikasi_koleksi,
-      material_bahan: Array.isArray(material_bahan) ? material_bahan : [],
-      kondisi_koleksi: Array.isArray(kondisi_koleksi) ? kondisi_koleksi : [],
-      faktor_kerusakan: Array.isArray(faktor_kerusakan) ? faktor_kerusakan : [],
-      teknis_penanganan,
-      metode_perawatan,
-      metode_bahan,
-      alat_digunakan: Array.isArray(alat_digunakan) ? alat_digunakan : [],
-      bahan_digunakan: Array.isArray(bahan_digunakan) ? bahan_digunakan : [],
-      bahan_pembungkus: Array.isArray(bahan_pembungkus) ? bahan_pembungkus : [],
-      bahan_pengawet: Array.isArray(bahan_pengawet) ? bahan_pengawet : [],
-      petugas_konservasi,
-      pendataan
-    };
+    if (payload.mode === 'individu' && !payload.koleksi_id) {
+      return responseHandler.sendError(res, 400, 'Koleksi wajib dipilih untuk mode individu');
+    }
 
-    const result = await PerawatanRepository.createFormPerawatan(payload);
-    return responseHandler.sendSuccess(res, 201, 'Form Perawatan berhasil dibuat.', result);
+    if (payload.mode === 'lampiran' && !payload.ba_id) {
+      return responseHandler.sendError(res, 400, 'Berita Acara wajib dipilih untuk mode lampiran');
+    }
+
+    if (!payload.tanggal_perawatan) {
+      return responseHandler.sendError(res, 400, 'Tanggal perawatan wajib diisi');
+    }
+
+    const petugasId = req.user?.id || null; 
+
+    const result = await PerawatanRepository.createPerawatan(payload, petugasId);
+    return responseHandler.sendSuccess(res, 201, 'Perawatan berhasil ditambahkan', result);
   } catch (error) {
     console.error('[Perawatan Create Error]', error.message);
     return responseHandler.sendError(res, 500, error.message);

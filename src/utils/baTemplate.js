@@ -62,14 +62,14 @@ function generateBAHtml(ba) {
     paragrafPembuka = `PIHAK PERTAMA telah melakukan penyerahan koleksi kepada PIHAK KEDUA
       sebanyak ${jumlah} (${jumlahKata}) koleksi untuk di ${keperluan}
       dengan ketentuan sebagai berikut:`;
-    pasal1 = `PIHAK PERTAMA menyerahkan sebanyak ${jumlah} (${jumlahKata}) koleksi
+    pasal1 = `PIHAK PERTAMA menyerahkan koleksi
       (daftar dan identitas koleksi terlampir) kepada PIHAK KEDUA dan PIHAK KEDUA
       telah menerima koleksi tersebut.`;
   } else {
     paragrafPembuka = `PIHAK PERTAMA telah melakukan Pengembalian Koleksi setelah di${keperluan}
       kepada PIHAK KEDUA untuk disimpan kembali pada ruang penyimpanan koleksi
       dengan ketentuan sebagai berikut:`;
-    pasal1 = `PIHAK PERTAMA mengembalikan koleksi sebanyak ${jumlah} (${jumlahKata}) koleksi
+    pasal1 = `PIHAK PERTAMA mengembalikan koleksi
       (daftar dan identitas koleksi terlampir) kepada PIHAK KEDUA dan PIHAK KEDUA
       telah menerima koleksi tersebut.`;
   }

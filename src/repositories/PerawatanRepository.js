@@ -6,12 +6,42 @@ class PerawatanRepository extends BaseRepository {
   }
 
   /**
-   * Membuat record Form Perawatan baru
+   * Membuat record Form Perawatan baru dengan dukungan Mode Individu dan BA
    */
-  async createFormPerawatan(data) {
+  async createPerawatan(payload, petugasId) {
+    const {
+        mode,
+        koleksi_id,
+        ba_id,
+        tanggal_perawatan,
+        klasifikasi_koleksi,
+        material_bahan,
+        kondisi,
+        faktor_kerusakan,
+        metode_konservasi,
+        teknis_penanganan,
+        alat_bahan,
+        pengamanan
+    } = payload;
+
+    const insertData = {
+        koleksi_id: mode === 'individu' ? koleksi_id : null,
+        ba_id: mode === 'lampiran' ? ba_id : null,
+        tanggal_perawatan,
+        klasifikasi_koleksi,
+        material_bahan,
+        kondisi,
+        faktor_kerusakan,
+        metode_konservasi,
+        teknis_penanganan,
+        alat_bahan,
+        pengamanan,
+        petugas_id: petugasId 
+    };
+
     const { data: result, error } = await this.db
-      .from('form_perawatan')
-      .insert(data)
+      .from('perawatan_koleksi')
+      .insert([insertData])
       .select()
       .single();
 

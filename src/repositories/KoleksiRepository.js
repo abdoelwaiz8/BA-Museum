@@ -80,7 +80,6 @@ class KoleksiRepository extends BaseRepository {
     const { data, error } = await this.db
       .from(this.tableName)
       .select('jenis_koleksi, kondisi_terkini')
-      // ── FIXED: tambah limit tinggi agar dapat semua 4776+ baris ──
       .limit(99999);
 
     if (error) throw error;
