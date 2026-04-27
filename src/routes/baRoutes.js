@@ -18,6 +18,9 @@ router.get('/:id', baController.getDetail);
 /** @route GET  /api/berita-acara/:id/pdf — Generate & download PDF */
 router.get('/:id/pdf', baController.generatePdf);
 
+/** @route PUT  /api/berita-acara/:id/status-kembali — Update status peminjaman ke 'Dikembalikan' */
+router.put('/:id/status-kembali', allowedRoles('admin', 'petugas'), baController.statusKembali);
+
 /** @route DELETE /api/berita-acara/:id   — Delete BA */
 router.delete('/:id', allowedRoles('admin'), baController.remove);
 

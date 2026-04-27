@@ -11,7 +11,7 @@ exports.create = async (req, res) => {
     const {
       nomor_surat, jenis_ba, tanggal_serah_terima,
       keperluan,
-      pihak_pertama_id,
+      pihak_pertama_id, pihak_pertama_ext,
       pihak_kedua_id,   pihak_kedua_ext,
       saksi1_id,
       saksi2_id,        saksi2_ext,
@@ -19,9 +19,17 @@ exports.create = async (req, res) => {
     } = req.body;
 
     // ── Validasi field wajib ────────────────────────────────────
-    if (!nomor_surat || !jenis_ba || !tanggal_serah_terima || !pihak_pertama_id) {
+    if (!nomor_surat || !jenis_ba || !tanggal_serah_terima) {
       return responseHandler.sendError(res, 400,
-        'Field nomor_surat, jenis_ba, tanggal_serah_terima, dan pihak_pertama_id wajib diisi.');
+        'Field nomor_surat, jenis_ba, dan tanggal_serah_terima wajib diisi.');
+    }
+
+    // Pihak Pertama: internal (id) atau eksternal (ext)
+    const p1HasInternal = !!pihak_pertama_id;
+    const p1HasExternal = pihak_pertama_ext && pihak_pertama_ext.nama;
+    if (!p1HasInternal && !p1HasExternal) {
+      return responseHandler.sendError(res, 400,
+        'Pihak Pertama wajib diisi — pilih dari daftar staff atau isi data eksternal.');
     }
 
     // Pihak Kedua: harus ada salah satu
@@ -51,16 +59,16 @@ exports.create = async (req, res) => {
       nomor_surat,
       jenis_ba,
       tanggal_serah_terima,
-      // ── PERUBAHAN: simpan keperluan, default 'Konservasi' ─────
       keperluan: keperluan || 'Konservasi',
-      // ─────────────────────────────────────────────────────────
-      pihak_pertama_id,
+      pihak_pertama_id:  p1HasInternal ? pihak_pertama_id : null,
       pihak_kedua_id:    p2HasInternal ? pihak_kedua_id : null,
-      pihak_kedua_ext:   p2HasExternal ? JSON.stringify(pihak_kedua_ext) : null,
       saksi1_id:         saksi1_id || null,
       saksi2_id:         (saksi2_id && !saksi2_ext) ? saksi2_id : null,
-      saksi2_ext:        saksi2_ext?.nama ? JSON.stringify(saksi2_ext) : null,
     };
+
+    if (p1HasExternal) headerData.pihak_pertama_ext = JSON.stringify(pihak_pertama_ext);
+    if (p2HasExternal) headerData.pihak_kedua_ext = JSON.stringify(pihak_kedua_ext);
+    if (saksi2_ext?.nama) headerData.saksi2_ext = JSON.stringify(saksi2_ext);
 
     const result = await BARepository.createBATransaction(headerData, itemsArray);
     return responseHandler.sendSuccess(res, 201, 'Berita Acara berhasil dibuat.', result);
@@ -97,7 +105,9 @@ exports.generatePdf = async (req, res) => {
     const baData = await BARepository.getFullDetail(req.params.id);
     if (!baData) return responseHandler.sendError(res, 404, 'Berita Acara tidak ditemukan.');
 
-    const htmlContent = generateBAHtml(baData);
+    // tampilkan_kondisi: default aktif (1/true), kirim ?tampilkan_kondisi=0 untuk nonaktifkan
+    const tampilkanKondisi = req.query.tampilkan_kondisi !== '0';
+    const htmlContent = generateBAHtml(baData, { tampilkanKondisi });
     const pdfBuffer   = await htmlToPdf(htmlContent);
 
     const namaFile = `BA_${baData.nomor_surat.replace(/\//g, '-')}.pdf`;
@@ -119,5 +129,19 @@ exports.remove = async (req, res) => {
   } catch (error) {
     console.error('[BA Delete Error]', error.message);
     return responseHandler.sendError(res, 500, `Gagal menghapus BA: ${error.message}`);
+  }
+};
+
+/** PUT /api/berita-acara/:id/status-kembali */
+exports.statusKembali = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!id) return responseHandler.sendError(res, 400, 'ID Berita Acara wajib disertakan.');
+
+    const result = await BARepository.updateStatusKembali(id);
+    return responseHandler.sendSuccess(res, 200, 'Status pengembalian berhasil diupdate.', result);
+  } catch (error) {
+    console.error('[BA Status Kembali Error]', error.message);
+    return responseHandler.sendError(res, 500, error.message);
   }
 };

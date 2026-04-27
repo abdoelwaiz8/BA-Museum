@@ -101,3 +101,13 @@ exports.remove = async (req, res) => {
     return responseHandler.sendError(res, 500, error.message);
   }
 };
+
+exports.searchForModal = async (req, res) => {
+  try {
+    const { q = '', limit = 50000 } = req.query;
+    const result = await KoleksiRepository.searchForModal(q, limit);
+    return responseHandler.sendSuccess(res, 200, 'Hasil pencarian koleksi.', result);
+  } catch (error) {
+    return responseHandler.sendError(res, 500, error.message);
+  }
+};

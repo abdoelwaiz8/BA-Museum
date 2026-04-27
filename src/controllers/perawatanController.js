@@ -23,7 +23,7 @@ exports.create = async (req, res) => {
       return responseHandler.sendError(res, 400, 'Mode tidak valid (harus individu atau lampiran)');
     }
 
-    if (payload.mode === 'individu' && !payload.koleksi_id) {
+    if (payload.mode === 'individu' && (!payload.items || payload.items.length === 0)) {
       return responseHandler.sendError(res, 400, 'Koleksi wajib dipilih untuk mode individu');
     }
 
@@ -35,7 +35,7 @@ exports.create = async (req, res) => {
       return responseHandler.sendError(res, 400, 'Tanggal perawatan wajib diisi');
     }
 
-    const petugasId = req.user?.id || null; 
+    const petugasId = payload.petugas_id || null;
 
     const result = await PerawatanRepository.createPerawatan(payload, petugasId);
     return responseHandler.sendSuccess(res, 201, 'Perawatan berhasil ditambahkan', result);

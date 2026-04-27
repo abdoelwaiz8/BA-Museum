@@ -11,42 +11,93 @@ class PerawatanRepository extends BaseRepository {
   async createPerawatan(payload, petugasId) {
     const {
         mode,
-        koleksi_id,
+        items,
         ba_id,
         tanggal_perawatan,
         klasifikasi_koleksi,
         material_bahan,
         kondisi,
         faktor_kerusakan,
-        metode_konservasi,
-        teknis_penanganan,
-        alat_bahan,
-        pengamanan
-    } = payload;
-
-    const insertData = {
-        koleksi_id: mode === 'individu' ? koleksi_id : null,
-        ba_id: mode === 'lampiran' ? ba_id : null,
-        tanggal_perawatan,
-        klasifikasi_koleksi,
-        material_bahan,
-        kondisi,
-        faktor_kerusakan,
-        metode_konservasi,
+        metode_konservasi = {},
         teknis_penanganan,
         alat_bahan,
         pengamanan,
-        petugas_id: petugasId 
+        catatan
+    } = payload;
+
+    // Ekstrak sub-field dari metode_konservasi dan alat_bahan / pengamanan
+    const kode_perawatan = metode_konservasi.kode_perawatan || null;
+    const asal_koleksi   = metode_konservasi.asal_koleksi   || null;
+    // jenis_organik adalah boolean: Organik=true, Anorganik=false, null jika tidak dipilih
+    const jenisStr = metode_konservasi.jenis_koleksi || null;
+    const jenis_organik = jenisStr === 'Organik' ? true : jenisStr === 'Anorganik' ? false : null;
+    // Kolom bercheck constraint: kirim null jika kosong (bukan '-')
+    const validMetodePRawatan  = ['Preventif','Kuratif'];
+    const validTeknisP         = ['Basah','Kering'];
+    const validMetodeBahan     = ['Kimia','Alami'];
+    const metode_perawatan = validMetodePRawatan.includes(metode_konservasi.metode_perawatan) ? metode_konservasi.metode_perawatan : null;
+    const metode_bahan     = validMetodeBahan.includes(metode_konservasi.metode_bahan) ? metode_konservasi.metode_bahan : null;
+    const teknis_valid     = validTeknisP.includes(teknis_penanganan) ? teknis_penanganan : null;
+
+    // Parsing alat/bahan dari string "Alat: x\nBahan: y"
+    let alat = '-', bahan = '-';
+    if (alat_bahan) {
+      const parts = alat_bahan.split(/\n|\\n/);
+      alat  = (parts[0] || '').replace(/^Alat:\s*/i, '').trim() || '-';
+      bahan = (parts[1] || '').replace(/^Bahan:\s*/i, '').trim() || '-';
+    }
+
+    // Parsing pembungkus/pengawet dari string "Pembungkus: x\nPengawet: y"
+    let pembungkus = '-', pengawet = '-';
+    if (pengamanan) {
+      const parts = pengamanan.split(/\n|\\n/);
+      pembungkus = (parts[0] || '').replace(/^Pembungkus:\s*/i, '').trim() || '-';
+      pengawet   = (parts[1] || '').replace(/^Pengawet:\s*/i, '').trim() || '-';
+    }
+
+    // Konversikan array ke string untuk kolom text
+    const kondisiTxt      = Array.isArray(kondisi)        ? kondisi.join(', ')        : (kondisi || '-');
+    const faktorTxt       = Array.isArray(faktor_kerusakan) ? faktor_kerusakan.join(', ') : (faktor_kerusakan || '-');
+    const materialTxt     = Array.isArray(material_bahan)  ? material_bahan.join(', ')  : (material_bahan || '-');
+    const klasifikasiTxt  = Array.isArray(klasifikasi_koleksi) ? klasifikasi_koleksi.join(', ') : (klasifikasi_koleksi || '-');
+
+    const baseRow = {
+        kode_perawatan,
+        tanggal: tanggal_perawatan,
+        asal_koleksi,
+        jenis_organik,
+        kondisi:            kondisiTxt,
+        faktor_kerusakan:   faktorTxt,
+        teknis_penanganan:  teknis_valid,
+        metode_perawatan,
+        metode_bahan,
+        alat,
+        bahan,
+        pembungkus,
+        pengawet,
+        material:           materialTxt,
+        catatan:            catatan || null,
+        petugas_id:         petugasId,
     };
 
-    const { data: result, error } = await this.db
-      .from('perawatan_koleksi')
-      .insert([insertData])
-      .select()
-      .single();
+    // Jika mode lampiran
+    if (mode === 'lampiran') {
+      const insertData = { ...baseRow, ba_id };
+      const { data: result, error } = await this.db.from('perawatan_koleksi').insert([insertData]).select().single();
+      if (error) throw new Error(`Gagal membuat Form Perawatan (Lampiran): ${error.message}`);
+      return result;
+    }
 
-    if (error) throw new Error(`Gagal membuat Form Perawatan: ${error.message}`);
-    return result;
+    // Jika mode individu: insert satu row per koleksi dalam items
+    const rowsToInsert = items.map(item => ({
+        ...baseRow,
+        koleksi_id: item.koleksi_id,
+    }));
+
+    const { data: resultList, error } = await this.db.from('perawatan_koleksi').insert(rowsToInsert).select();
+    if (error) throw new Error(`Gagal membuat Form Perawatan (Individu): ${error.message}`);
+
+    return resultList && resultList.length > 0 ? resultList[0] : null;
   }
 
   /**
@@ -54,16 +105,17 @@ class PerawatanRepository extends BaseRepository {
    */
   async findAllForms() {
     const { data, error } = await this.db
-      .from('form_perawatan')
+      .from('perawatan_koleksi')
       .select(`
         id,
         kode_perawatan,
+        tanggal,
         asal_koleksi,
-        klasifikasi_koleksi,
-        petugas_konservasi,
-        pendataan,
+        kondisi,
+        petugas_id,
         created_at,
-        berita_acara(nomor_surat, tanggal_serah_terima)
+        petugas:petugas_id(nama, jabatan),
+        koleksi:koleksi_id(no_inventaris, nama_koleksi, jenis_koleksi)
       `)
       .order('created_at', { ascending: false });
 
@@ -76,20 +128,11 @@ class PerawatanRepository extends BaseRepository {
    */
   async getFullDetail(id) {
     const { data, error } = await this.db
-      .from('form_perawatan')
+      .from('perawatan_koleksi')
       .select(`
         *,
-        berita_acara(
-          id,
-          nomor_surat,
-          tanggal_serah_terima,
-          items:ba_items(
-            id,
-            kondisi_saat_transaksi,
-            keterangan_item,
-            koleksi:koleksi_id(no_inventaris, nama_koleksi, jenis_koleksi)
-          )
-        )
+        petugas:petugas_id(id, nama, jabatan),
+        koleksi:koleksi_id(no_inventaris, nama_koleksi, jenis_koleksi, kondisi_terkini)
       `)
       .eq('id', id)
       .single();

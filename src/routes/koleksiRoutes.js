@@ -7,9 +7,9 @@ router.use(protect);
 
 router.get('/', koleksiController.getAll);
 
-// !! /stats HARUS sebelum /:id — agar Express tidak baca "stats" sebagai UUID
-router.get('/stats', koleksiController.getStats);
 
+router.get('/stats', koleksiController.getStats);
+router.get('/search', koleksiController.searchForModal);
 router.get('/:id',    koleksiController.getById);
 router.post('/',      allowedRoles('admin', 'petugas'), koleksiController.create);
 router.put('/:id',    allowedRoles('admin', 'petugas'), koleksiController.update);

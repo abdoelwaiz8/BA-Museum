@@ -60,9 +60,6 @@ class KoleksiRepository extends BaseRepository {
     };
   }
 
-  /**
-   * Cek apakah no_inventaris sudah dipakai (validasi unik)
-   */
   async isNoInventarisTaken(noInventaris, excludeId = null) {
     let query = this.db
       .from(this.tableName)
@@ -75,7 +72,29 @@ class KoleksiRepository extends BaseRepository {
     return !!data;
   }
 
-  
+  async searchForModal(q = '', limit = 50000) {
+      let query = this.db
+        .from(this.tableName)
+        .select('id, no_inventaris, nama_koleksi, jenis_koleksi, kondisi_terkini, lokasi_terkini');
+
+      if (q && q.trim()) {
+        const keyword = q.trim();
+        query = query.or(
+          `nama_koleksi.ilike.%${keyword}%,no_inventaris.ilike.%${keyword}%`
+        );
+      }
+
+      const limitNum = Math.max(1, parseInt(limit) || 50000);
+      query = query
+        .order('no_inventaris', { ascending: true })
+        .limit(limitNum);
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return data || [];
+    }
+      
+
   async getStats() {
     const { data, error } = await this.db
       .from(this.tableName)
@@ -96,7 +115,6 @@ class KoleksiRepository extends BaseRepository {
       if (kondisi in kondisiMap) {
         kondisiMap[kondisi]++;
       } else {
-        // Kondisi lain yg tidak dikenal, masukkan ke Baik
         kondisiMap['Baik']++;
       }
     });

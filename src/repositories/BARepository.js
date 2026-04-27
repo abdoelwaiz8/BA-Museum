@@ -19,10 +19,15 @@ class BARepository extends BaseRepository {
    * sehingga layer atas selalu mendapat { nama, nip, jabatan, alamat }
    */
   _normalizePihak(ba) {
+    // Pihak Pertama (Eksternal)
+    if (!ba.pihak1 && ba.pihak_pertama_ext) {
+      const ext = this._parseExt(ba.pihak_pertama_ext);
+      if (ext) ba.pihak1 = { nama: ext.nama, nip: ext.nip || '-', jabatan: ext.jabatan || '', alamat: ext.alamat || '-' };
+    }
     // Pihak Kedua
     if (!ba.pihak2 && ba.pihak_kedua_ext) {
       const ext = this._parseExt(ba.pihak_kedua_ext);
-      if (ext) ba.pihak2 = { nama: ext.nama, nip: '-', jabatan: ext.jabatan || '', alamat: '-' };
+      if (ext) ba.pihak2 = { nama: ext.nama, nip: ext.nip || '-', jabatan: ext.jabatan || '', alamat: ext.alamat || '-' };
     }
     // Saksi 2
     if (!ba.saksi2 && ba.saksi2_ext) {
@@ -36,6 +41,11 @@ class BARepository extends BaseRepository {
    * Transaksi pembuatan Berita Acara
    */
   async createBATransaction(headerData, itemsData) {
+    // Step 1: Tambahkan status_peminjaman jika jenis_ba adalah 'Penyerahan'
+    if (headerData.jenis_ba === 'Penyerahan') {
+      headerData.status_peminjaman = 'Belum Dikembalikan';
+    }
+
     // Step 1: Insert header
     const { data: baHeader, error: headerError } = await this.db
       .from('berita_acara')
@@ -97,6 +107,7 @@ class BARepository extends BaseRepository {
         id,
         nomor_surat,
         jenis_ba,
+        status_peminjaman,
         tanggal_serah_terima,
         created_at,
         pihak_kedua_ext,
@@ -119,16 +130,18 @@ class BARepository extends BaseRepository {
       .from('berita_acara')
       .select(`
         *,
-        pihak1:pihak_pertama_id(nama, nip, jabatan, alamat),
-        pihak2:pihak_kedua_id(nama, nip, jabatan, alamat),
+        pihak1:pihak_pertama_id(id, nama, nip, jabatan, alamat),
+        pihak2:pihak_kedua_id(id, nama, nip, jabatan, alamat),
         saksi1:saksi1_id(nama, nip, jabatan),
         saksi2:saksi2_id(nama, nip, jabatan),
         items:ba_items(
           id,
+          koleksi_id,
           kondisi_saat_transaksi,
           lokasi_tujuan,
           keterangan_item,
           koleksi:koleksi_id(
+            id,
             no_inventaris,
             nama_koleksi,
             jenis_koleksi,
@@ -146,6 +159,21 @@ class BARepository extends BaseRepository {
   /**
    * Menghapus Berita Acara beserta items-nya
    */
+  /**
+   * Update status_peminjaman menjadi 'Dikembalikan'
+   */
+  async updateStatusKembali(id) {
+    const { data, error } = await this.db
+      .from('berita_acara')
+      .update({ status_peminjaman: 'Dikembalikan' })
+      .eq('id', id)
+      .select('id, status_peminjaman')
+      .single();
+
+    if (error) throw new Error(`Gagal update status pengembalian: ${error.message}`);
+    return data;
+  }
+
   async deleteBA(id) {
     const { error: itemsError } = await this.db
       .from('ba_items')
