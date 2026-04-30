@@ -2,18 +2,12 @@
 
 /* ─── helpers ───────────────────────────────────────────────────────────── */
 
-/**
- * Pecah string CSV "Kuas, Pinset" menjadi Set agar pencarian O(1)
- */
 function toSet(val) {
   if (!val) return new Set();
   if (Array.isArray(val)) return new Set(val.map(v => v.trim()));
   return new Set(String(val).split(',').map(v => v.trim()));
 }
 
-/**
- * Kotak centang kecil — ✓ bila nilai ada di set, kosong bila tidak
- */
 function box(set, val) {
   const checked = set.has(val);
   return checked
@@ -21,16 +15,10 @@ function box(set, val) {
     : `<span style="display:inline-block;width:11px;height:11px;border:1px solid #000;font-size:9px;line-height:11px;text-align:center;vertical-align:middle;">&nbsp;</span>`;
 }
 
-/**
- * Bullet faktor — ● bila ada, ○ bila tidak
- */
 function bul(set, val) {
   return set.has(val) ? '&#9679;' : '&#9675;';
 }
 
-/**
- * Format tanggal Indonesia
- */
 function fmtDate(val) {
   if (!val) return '-';
   const d = new Date(val);
@@ -38,7 +26,7 @@ function fmtDate(val) {
   return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
 }
 
-/* ─── data klasifikasi — array untuk menjaga urutan 01→10 ─────────────── */
+/* ─── data klasifikasi ─────────────────────────────────────────────────── */
 const KLASIFIKASI = [
   { code: '01', label: 'GEOLOGIKA',    bg: '#000000', text: '#fff' },
   { code: '02', label: 'BIOLOGIKA',    bg: '#555555', text: '#fff' },
@@ -53,9 +41,7 @@ const KLASIFIKASI = [
 ];
 
 /* ─── main generator ────────────────────────────────────────────────────── */
-function generatePerawatanHtml(data) {
-  /* Normalise joined objects */
-  const koleksi  = data.koleksi  || {};
+function generatePerawatanLampiranHtml(data) {
   const petugas  = data.petugas  || {};
 
   /* Parse semua field CSV menjadi Set */
@@ -68,7 +54,7 @@ function generatePerawatanHtml(data) {
   const sPembungkus  = toSet(data.pembungkus);
   const sPengawet    = toSet(data.pengawet);
 
-  /* Parse "Lainnya: teks" dari field material (disimpan gabung CSV) */
+  /* Parse "Lainnya: teks" dari field material */
   let materialLainnyaTxt = data.material_lainnya || '';
   if (!materialLainnyaTxt) {
     for (const item of sMaterial) {
@@ -79,9 +65,7 @@ function generatePerawatanHtml(data) {
       }
     }
   }
-  // Untuk checkbox Lainnya: cocok bila ada item yang berawalan "lainnya"
   const hasLainnya = [...sMaterial].some(v => v.toLowerCase().startsWith('lainnya'));
-  // Tambahkan 'Lainnya' ke set agar box() bisa mendeteksinya
   if (hasLainnya) sMaterial.add('Lainnya');
 
   /* Jenis organik */
@@ -89,13 +73,13 @@ function generatePerawatanHtml(data) {
     data.jenis_organik === true  ? 'Organik' :
     data.jenis_organik === false ? 'Anorganik' : '-';
 
-  /* ── Baris checklist kondisi (3 kolom) ── */
-  const kondisiCol1 = [
-    'Polutan/debu','Jamur','Lembab','Lapuk','Mengelupas','Berubah Warna',
-  ];
-  const kondisiCol2 = [
-    'Tergores','Berlubang','Sompel','Robek','Noda Kotoran','Bekas Perbaikan (repair)',
-  ];
+  /* ── Data dari BA terkait ── */
+  const nomorBA     = data.ba?.nomor_surat || data.nomor_ba || '-';
+  const jumlahKoleksi = data.ba?.jumlah_koleksi || data.jumlah_koleksi || '-';
+
+  /* ── Kondisi (3 kolom) ── */
+  const kondisiCol1 = ['Polutan/debu','Jamur','Lembab','Lapuk','Mengelupas','Berubah Warna'];
+  const kondisiCol2 = ['Tergores','Berlubang','Sompel','Robek','Noda Kotoran','Bekas Perbaikan (repair)'];
   const kondisiCol3 = ['Pecah','Retak','Patah','Karatan'];
 
   /* ── Alat (5 kolom) ── */
@@ -120,10 +104,6 @@ function generatePerawatanHtml(data) {
   const pembungkusLeft  = ['Amplop','Box File','Busa Lapis','Busa Polyfoam'];
   const pembungkusRight = ['Kertas Bebas asam','Kain kerah (staplek)','Kain Belacu','Kertas Wrab'];
 
-  /* ── Pengawet (bullet list 2 kolom) ── */
-  const pengawetLeft  = ['Cengkeh','Lada Hitam','Tembakau'];
-  const pengawetRight = ['Silica-gel','Kapur Barus'];
-
   /* ── helper render kolom alat/bahan ── */
   const renderCols = (cols, set, cellW) => {
     const maxRows = Math.max(...cols.map(c => c.length));
@@ -142,7 +122,7 @@ function generatePerawatanHtml(data) {
     return html;
   };
 
-  /* ── Klasifikasi rows — pakai KLASIFIKASI array agar urutan 01→10 terjaga ── */
+  /* ── Klasifikasi rows ── */
   const klasRows = KLASIFIKASI.map(({ code, label, bg, text }) => {
     const isActive = sKlasifikasi.has(code);
     return `
@@ -178,11 +158,15 @@ function generatePerawatanHtml(data) {
     kondisiRows += '</tr>';
   }
 
+  /* ─── Nama petugas untuk tanda tangan ─── */
+  const namaPetugas  = petugas.nama  || data.nama_petugas  || '';
+  const namaPendataan = data.nama_pendataan || '';
+
   return `<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Form Perawatan Koleksi</title>
+<title>Form Perawatan Koleksi (Lampiran)</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -201,15 +185,13 @@ function generatePerawatanHtml(data) {
     margin-bottom: 4px;
     margin-top: 8px;
   }
-  table.main { width:100%; border-collapse:collapse; }
-  table.main td, table.main th { border:1px solid #888; padding:2px 5px; vertical-align:top; }
 </style>
 </head>
 <body>
 
 <!-- ═══════════ HEADER ═══════════ -->
 <div style="background:#1a1a1a;color:#fff;padding:6px 10px;margin-bottom:2px;">
-  <div style="font-size:14px;font-weight:bold;letter-spacing:0.5px;">FORM PERAWATAN KOLEKSI MUSEUM ACEH</div>
+  <div style="font-size:14px;font-weight:bold;letter-spacing:0.5px;">FORM PERAWATAN KOLEKSI MUSEUM ACEH&nbsp;<span style="font-size:12px;font-style:italic;">(Lampiran)</span></div>
 </div>
 <div style="border:1px solid #000;border-top:none;padding:3px 10px;font-size:10px;margin-bottom:10px;">
   Kode Perawatan &nbsp;: &nbsp;<strong>NO.PK</strong>
@@ -223,20 +205,20 @@ function generatePerawatanHtml(data) {
 
 <table style="width:100%;border-collapse:collapse;">
 <tr>
-  <!-- KIRI: data koleksi -->
+  <!-- KIRI: data koleksi dari BA -->
   <td style="vertical-align:top;padding-right:8px;width:62%;">
     <table style="width:100%;border-collapse:collapse;font-size:9.5px;">
       <tr>
-        <td style="width:22px;padding:1px;background:#1a1a1a;">&nbsp;</td>
-        <td style="padding:1.5px 6px;">Nama Koleksi</td>
+        <td style="width:22px;padding:1px;background:#c05000;">&nbsp;</td>
+        <td style="padding:1.5px 6px;">Nomor Berita Acara</td>
         <td style="width:8px;">:</td>
-        <td style="border-bottom:1px solid #888;padding:1.5px 4px;">${koleksi.nama_koleksi || ''}</td>
+        <td style="border-bottom:1px solid #888;padding:1.5px 4px;font-weight:bold;">${nomorBA}</td>
       </tr>
       <tr>
-        <td style="background:#555;">&nbsp;</td>
-        <td style="padding:1.5px 6px;">No. Inventaris</td>
+        <td style="background:#e07030;">&nbsp;</td>
+        <td style="padding:1.5px 6px;">Jumlah Koleksi</td>
         <td>:</td>
-        <td style="border-bottom:1px solid #888;padding:1.5px 4px;">${koleksi.no_inventaris || ''}</td>
+        <td style="border-bottom:1px solid #888;padding:1.5px 4px;font-weight:bold;">${jumlahKoleksi}</td>
       </tr>
       <tr>
         <td style="background:#aaa;">&nbsp;</td>
@@ -246,7 +228,7 @@ function generatePerawatanHtml(data) {
       </tr>
       <tr>
         <td style="background:#cde;">&nbsp;</td>
-        <td style="padding:1.5px 6px;">Jenis Koleksi</td>
+        <td style="padding:1.5px 6px;">Jenis Koleksi <span style="font-size:8px;">(Bahan)</span></td>
         <td>:</td>
         <td style="padding:1.5px 4px;">${jenisKoleksiTxt !== '-' ? jenisKoleksiTxt : 'Organik / Anorganik'}</td>
       </tr>
@@ -306,14 +288,11 @@ function generatePerawatanHtml(data) {
 
 <table style="width:100%;border-collapse:collapse;">
 <tr>
-  <!-- Checklist kondisi -->
   <td style="vertical-align:top;width:60%;padding-right:6px;">
     <table style="width:100%;border-collapse:collapse;font-size:9.5px;">
       ${kondisiRows}
     </table>
   </td>
-
-  <!-- Faktor Penyebab Kerusakan -->
   <td style="vertical-align:top;width:40%;">
     <table style="width:100%;border-collapse:collapse;border:1px solid #888;">
       <tr>
@@ -323,36 +302,20 @@ function generatePerawatanHtml(data) {
         </td>
       </tr>
       <tr>
-        <td style="padding:2px 8px;font-size:9px;border:none;">
-          ${bul(sFaktor,'Cahaya')} Cahaya
-        </td>
-        <td style="padding:2px 8px;font-size:9px;border:none;">
-          ${bul(sFaktor,'Debu')} Debu
-        </td>
+        <td style="padding:2px 8px;font-size:9px;border:none;">${bul(sFaktor,'Cahaya')} Cahaya</td>
+        <td style="padding:2px 8px;font-size:9px;border:none;">${bul(sFaktor,'Debu')} Debu</td>
       </tr>
       <tr>
-        <td style="padding:2px 8px;font-size:9px;border:none;">
-          ${bul(sFaktor,'Suhu')} Suhu
-        </td>
-        <td style="padding:2px 8px;font-size:9px;border:none;">
-          ${bul(sFaktor,'Kelembaban')} Kelembaban
-        </td>
+        <td style="padding:2px 8px;font-size:9px;border:none;">${bul(sFaktor,'Suhu')} Suhu</td>
+        <td style="padding:2px 8px;font-size:9px;border:none;">${bul(sFaktor,'Kelembaban')} Kelembaban</td>
       </tr>
       <tr>
-        <td style="padding:2px 8px;font-size:9px;border:none;">
-          ${bul(sFaktor,'Bencana')} Bencana
-        </td>
-        <td style="padding:2px 8px;font-size:9px;border:none;">
-          ${bul(sFaktor,'Insect/serangga/hama')} Insect/serangga/hama
-        </td>
+        <td style="padding:2px 8px;font-size:9px;border:none;">${bul(sFaktor,'Bencana')} Bencana</td>
+        <td style="padding:2px 8px;font-size:9px;border:none;">${bul(sFaktor,'Insect/serangga/hama')} Insect/serangga/hama</td>
       </tr>
       <tr>
-        <td style="padding:2px 8px;font-size:9px;border:none;">
-          ${bul(sFaktor,'Disosiasi')} Disosiasi
-        </td>
-        <td style="padding:2px 8px;font-size:9px;border:none;">
-          ${bul(sFaktor,'Vandalisme/Tekanan')} Vandalisme/ Tekanan
-        </td>
+        <td style="padding:2px 8px;font-size:9px;border:none;">${bul(sFaktor,'Disosiasi')} Disosiasi</td>
+        <td style="padding:2px 8px;font-size:9px;border:none;">${bul(sFaktor,'Vandalisme/Tekanan')} Vandalisme/ Tekanan</td>
       </tr>
     </table>
   </td>
@@ -374,7 +337,7 @@ function generatePerawatanHtml(data) {
     </td>
   </tr>
   <tr>
-    <td style="background:#888;">&nbsp;</td>
+    <td style="background:#e07030;">&nbsp;</td>
     <td style="padding:1.5px 6px;">Metode perawatan</td>
     <td>:</td>
     <td style="padding:1.5px 4px;">
@@ -396,7 +359,7 @@ function generatePerawatanHtml(data) {
 </table>
 
 <!-- sub-header ALAT -->
-<div style="background:#cde8f0;border:1px solid #000;font-size:9.5px;font-weight:bold;
+<div style="background:#1a1a1a;color:#fff;border:1px solid #000;font-size:9.5px;font-weight:bold;
             padding:2px 6px;margin-bottom:3px;">ALAT</div>
 ${renderCols(alatCols, sAlat, '20%')}
 
@@ -436,51 +399,42 @@ ${renderCols(bahanCols, sBahan, '20%')}
     </div>
     <table style="width:100%;border-collapse:collapse;font-size:9.5px;">
       <tr>
-        <td style="border:none;padding:2px 8px;">
-          ${bul(sPengawet,'Cengkeh')} Cengkeh
-        </td>
-        <td style="border:none;padding:2px 8px;">
-          ${bul(sPengawet,'Silica-gel')} Cilica-gel
-        </td>
+        <td style="border:none;padding:2px 8px;">${bul(sPengawet,'Cengkeh')} Cengkeh</td>
+        <td style="border:none;padding:2px 8px;">${bul(sPengawet,'Silica-gel')} Cilica-gel</td>
       </tr>
       <tr>
-        <td style="border:none;padding:2px 8px;">
-          ${bul(sPengawet,'Lada Hitam')} Lada Hitam
-        </td>
-        <td style="border:none;padding:2px 8px;">
-          ${bul(sPengawet,'Kapur Barus')} Kapur Barus
-        </td>
+        <td style="border:none;padding:2px 8px;">${bul(sPengawet,'Lada Hitam')} Lada Hitam</td>
+        <td style="border:none;padding:2px 8px;">${bul(sPengawet,'Kapur Barus')} Kapur Barus</td>
       </tr>
       <tr>
-        <td colspan="2" style="border:none;padding:2px 8px;">
-          ${bul(sPengawet,'Tembakau')} Tembakau
-        </td>
+        <td colspan="2" style="border:none;padding:2px 8px;">${bul(sPengawet,'Tembakau')} Tembakau</td>
       </tr>
     </table>
   </td>
 </tr>
 </table>
 
-<!-- ═══════════ TANDA TANGAN ═══════════ -->
-<table style="width:100%;border-collapse:collapse;margin-top:22px;">
-<tr>
-  <td style="width:60%;border:none;">&nbsp;</td>
-  <td style="width:40%;border:none;padding:0 0 0 10px;font-size:9.5px;">
-    <div>Laboratorium Museum Aceh,</div>
-    <div style="margin-top:4px;">
-      Petugas Konservasi &nbsp;&nbsp;:&nbsp;
-      <span style="display:inline-block;border-bottom:1px solid #000;min-width:110px;">&nbsp;</span>
-    </div>
-    <div style="margin-top:24px;">
-      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:&nbsp;
-      <span style="display:inline-block;border-bottom:1px solid #000;min-width:110px;">&nbsp;${petugas.nama || ''}&nbsp;</span>
-    </div>
-  </td>
-</tr>
-</table>
+<!-- ═══════════ TANDA TANGAN (Lampiran: 2 kolom) ═══════════ -->
+<div style="margin-top:20px;">
+  <div style="font-size:9.5px;font-weight:bold;margin-bottom:12px;">Laboratorium Museum Aceh</div>
+  <table style="width:100%;border-collapse:collapse;">
+  <tr>
+    <td style="width:50%;border:none;font-size:9.5px;vertical-align:top;padding-right:10px;">
+      <div style="margin-bottom:4px;">Petugas Konservasi &nbsp;:&nbsp;
+        <span style="display:inline-block;border-bottom:1px solid #000;min-width:110px;">&nbsp;${namaPetugas}&nbsp;</span>
+      </div>
+    </td>
+    <td style="width:50%;border:none;font-size:9.5px;vertical-align:top;">
+      <div style="margin-bottom:4px;">Pendataan &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:&nbsp;
+        <span style="display:inline-block;border-bottom:1px solid #000;min-width:110px;">&nbsp;${namaPendataan}&nbsp;</span>
+      </div>
+    </td>
+  </tr>
+  </table>
+</div>
 
 </body>
 </html>`;
 }
 
-module.exports = { generatePerawatanHtml };
+module.exports = { generatePerawatanLampiranHtml };

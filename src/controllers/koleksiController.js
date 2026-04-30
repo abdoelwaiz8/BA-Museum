@@ -34,7 +34,7 @@ exports.getById = async (req, res) => {
 /** POST /api/koleksi */
 exports.create = async (req, res) => {
   try {
-    const { no_inventaris, nama_koleksi, jenis_koleksi, kondisi_terkini, lokasi_terkini } = req.body;
+    const { no_inventaris, nama_koleksi, jenis_koleksi, kondisi_terkini, lokasi_terkini, detail_koleksi } = req.body;
 
     if (!no_inventaris || !nama_koleksi) {
       return responseHandler.sendError(res, 400, 'Field no_inventaris dan nama_koleksi wajib diisi.');
@@ -51,6 +51,7 @@ exports.create = async (req, res) => {
       jenis_koleksi:   jenis_koleksi   || null,
       kondisi_terkini: kondisi_terkini || 'Baik',
       lokasi_terkini:  lokasi_terkini  || null,
+      detail_koleksi:  detail_koleksi  || null,
     });
 
     return responseHandler.sendSuccess(res, 201, 'Koleksi berhasil ditambahkan.', koleksi);
@@ -74,7 +75,7 @@ exports.update = async (req, res) => {
       }
     }
 
-    const allowedFields = ['no_inventaris', 'nama_koleksi', 'jenis_koleksi', 'kondisi_terkini', 'lokasi_terkini'];
+    const allowedFields = ['no_inventaris', 'nama_koleksi', 'jenis_koleksi', 'kondisi_terkini', 'lokasi_terkini', 'detail_koleksi'];
     const payload = {};
     allowedFields.forEach((field) => {
       if (req.body[field] !== undefined) payload[field] = req.body[field];

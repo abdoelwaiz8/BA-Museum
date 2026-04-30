@@ -2,6 +2,7 @@ const PerawatanRepository = require('../repositories/PerawatanRepository');
 const BARepository = require('../repositories/BARepository');
 const responseHandler = require('../utils/responseHandler');
 const { generatePerawatanHtml } = require('../utils/perawatanTemplate');
+const { generatePerawatanLampiranHtml } = require('../utils/perawatanlampiranTemplate');
 const { htmlToPdf } = require('../utils/pdfGenerator');
 
 /** GET /api/perawatan/ba-available */
@@ -77,7 +78,7 @@ exports.remove = async (req, res) => {
   }
 };
 
-/** GET /api/perawatan/:id/pdf */
+/** GET /api/perawatan/:id/pdf — PDF mode individu */
 exports.generatePdf = async (req, res) => {
   try {
     const formData = await PerawatanRepository.getFullDetail(req.params.id);
@@ -86,7 +87,7 @@ exports.generatePdf = async (req, res) => {
     const htmlContent = generatePerawatanHtml(formData);
     const pdfBuffer = await htmlToPdf(htmlContent);
 
-    const namaFile = `Form_Perawatan_${formData.kode_perawatan.replace(/\//g, '-')}.pdf`;
+    const namaFile = `Form_Perawatan_${(formData.kode_perawatan || formData.id).replace(/\//g, '-')}.pdf`;
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${namaFile}"`);
     res.setHeader('Content-Length', pdfBuffer.length);
@@ -94,5 +95,25 @@ exports.generatePdf = async (req, res) => {
   } catch (error) {
     console.error('[Perawatan PDF Error]', error.message);
     return responseHandler.sendError(res, 500, `Gagal generate PDF: ${error.message}`);
+  }
+};
+
+/** GET /api/perawatan/:id/pdf-lampiran — PDF mode lampiran (berbasis BA) */
+exports.generatePdfLampiran = async (req, res) => {
+  try {
+    const formData = await PerawatanRepository.getFullDetailLampiran(req.params.id);
+    if (!formData) return responseHandler.sendError(res, 404, 'Form Perawatan tidak ditemukan.');
+
+    const htmlContent = generatePerawatanLampiranHtml(formData);
+    const pdfBuffer = await htmlToPdf(htmlContent);
+
+    const namaFile = `Form_Perawatan_Lampiran_${(formData.kode_perawatan || formData.id).replace(/\//g, '-')}.pdf`;
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${namaFile}"`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+    return res.end(pdfBuffer);
+  } catch (error) {
+    console.error('[Perawatan Lampiran PDF Error]', error.message);
+    return responseHandler.sendError(res, 500, `Gagal generate PDF Lampiran: ${error.message}`);
   }
 };

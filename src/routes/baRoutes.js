@@ -11,6 +11,8 @@ router.post('/', allowedRoles('admin', 'petugas'), baController.create);
 /** @route GET  /api/berita-acara        — List semua BA */
 router.get('/', baController.getAll);
 
+/** @route GET  /api/berita-acara/stats/penyerahan-per-bulan */
+router.get('/stats/penyerahan-per-bulan', baController.getStatsPenyerahanPerBulan);
 
 /** @route GET  /api/berita-acara/:id    — Detail BA */
 router.get('/:id', baController.getDetail);

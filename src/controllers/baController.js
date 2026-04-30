@@ -105,6 +105,15 @@ exports.generatePdf = async (req, res) => {
     const baData = await BARepository.getFullDetail(req.params.id);
     if (!baData) return responseHandler.sendError(res, 404, 'Berita Acara tidak ditemukan.');
 
+    // Urutkan item berdasarkan no_inventaris dari kecil ke besar khusus untuk PDF
+    if (baData.items && baData.items.length > 0) {
+      baData.items.sort((a, b) => {
+        const noA = a.koleksi?.no_inventaris || '';
+        const noB = b.koleksi?.no_inventaris || '';
+        return noA.localeCompare(noB, undefined, { numeric: true, sensitivity: 'base' });
+      });
+    }
+
     // tampilkan_kondisi: default aktif (1/true), kirim ?tampilkan_kondisi=0 untuk nonaktifkan
     const tampilkanKondisi = req.query.tampilkan_kondisi !== '0';
     const htmlContent = generateBAHtml(baData, { tampilkanKondisi });
@@ -143,5 +152,16 @@ exports.statusKembali = async (req, res) => {
   } catch (error) {
     console.error('[BA Status Kembali Error]', error.message);
     return responseHandler.sendError(res, 500, error.message);
+  }
+};
+
+/** GET /api/berita-acara/stats/penyerahan-per-bulan */
+exports.getStatsPenyerahanPerBulan = async (req, res) => {
+  try {
+    const data = await BARepository.getPenyerahanStatsPerMonth();
+    return responseHandler.sendSuccess(res, 200, 'Statistik koleksi BA Penyerahan per bulan.', data);
+  } catch (error) {
+    console.error('[BA Stats Error]', error.message);
+    return responseHandler.sendError(res, 500, `Gagal memuat statistik BA: ${error.message}`);
   }
 };

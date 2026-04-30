@@ -23,4 +23,7 @@ router.delete('/:id', allowedRoles('admin'), perawatanController.remove);
 /** @route GET /api/perawatan/:id/pdf */
 router.get('/:id/pdf', perawatanController.generatePdf);
 
+/** @route GET /api/perawatan/:id/pdf-lampiran */
+router.get('/:id/pdf-lampiran', perawatanController.generatePdfLampiran);
+
 module.exports = router;

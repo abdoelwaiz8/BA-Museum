@@ -22,6 +22,7 @@ class PerawatanRepository extends BaseRepository {
         teknis_penanganan,
         alat_bahan,
         pengamanan,
+        nama_pendataan,
         catatan
     } = payload;
 
@@ -82,7 +83,7 @@ class PerawatanRepository extends BaseRepository {
 
     // Jika mode lampiran
     if (mode === 'lampiran') {
-      const insertData = { ...baseRow, ba_id };
+      const insertData = { ...baseRow, ba_id, nama_pendataan: nama_pendataan || null };
       const { data: result, error } = await this.db.from('perawatan_koleksi').insert([insertData]).select().single();
       if (error) throw new Error(`Gagal membuat Form Perawatan (Lampiran): ${error.message}`);
       return result;
@@ -109,6 +110,7 @@ class PerawatanRepository extends BaseRepository {
       .select(`
         id,
         kode_perawatan,
+        ba_id,
         tanggal,
         asal_koleksi,
         kondisi,
@@ -124,7 +126,7 @@ class PerawatanRepository extends BaseRepository {
   }
 
   /**
-   * Mengambil detail Form Perawatan beserta detail BA items
+   * Mengambil detail Form Perawatan lengkap (mode individu) beserta koleksi
    */
   async getFullDetail(id) {
     const { data, error } = await this.db
@@ -142,10 +144,40 @@ class PerawatanRepository extends BaseRepository {
   }
 
   /**
-   * Mengambil BA Peminjaman / Serah Terima yang belum memiliki form perawatan
+   * Mengambil detail Form Perawatan beserta info BA (mode Lampiran)
+   */
+  async getFullDetailLampiran(id) {
+    const { data, error } = await this.db
+      .from('perawatan_koleksi')
+      .select(`
+        *,
+        petugas:petugas_id(id, nama, jabatan),
+        ba:ba_id(
+          id,
+          nomor_surat,
+          jenis_ba,
+          tanggal_serah_terima,
+          items:ba_items(id)
+        )
+      `)
+      .eq('id', id)
+      .single();
+
+    if (error) throw error;
+    if (!data) return null;
+
+    // Hitung jumlah koleksi dari BA items
+    if (data.ba && data.ba.items) {
+      data.ba.jumlah_koleksi = data.ba.items.length;
+    }
+
+    return data;
+  }
+
+  /**
+   * Mengambil semua BA yang memiliki koleksi, sebagai pilihan form lampiran
    */
   async getAvailableBA() {
-    // Ambil BA Peminjaman / Serah Terima yang memilki ba_items
     const { data, error } = await this.db
       .from('berita_acara')
       .select(`
@@ -153,15 +185,19 @@ class PerawatanRepository extends BaseRepository {
         nomor_surat,
         jenis_ba,
         tanggal_serah_terima,
-        items:ba_items(id)
+        items:ba_items(id, koleksi:koleksi_id(nama_koleksi, no_inventaris))
       `)
-      .in('jenis_ba', ['Peminjaman', 'Serah Terima'])
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    
+
     // Harus ada items
-    return data.filter(ba => ba.items && ba.items.length > 0);
+    return (data || [])
+      .filter(ba => ba.items && ba.items.length > 0)
+      .map(ba => ({
+        ...ba,
+        total_item_koleksi: ba.items.length,
+      }));
   }
 }
 

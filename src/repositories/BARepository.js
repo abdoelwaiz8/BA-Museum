@@ -61,11 +61,11 @@ class BARepository extends BaseRepository {
       // Step 2: Insert items (jika ada)
       if (itemsData.length > 0) {
         const itemsToInsert = itemsData.map(item => ({
-          ba_id:                  baHeader.id,
-          koleksi_id:             item.koleksi_id,
+          ba_id: baHeader.id,
+          koleksi_id: item.koleksi_id,
           kondisi_saat_transaksi: item.kondisi,
-          lokasi_tujuan:          item.lokasi_tujuan || null,
-          keterangan_item:        item.keterangan   || '',
+          lokasi_tujuan: item.lokasi_tujuan || null,
+          keterangan_item: item.keterangan || '',
         }));
 
         const { error: itemsError } = await this.db
@@ -85,7 +85,7 @@ class BARepository extends BaseRepository {
             .eq('id', item.koleksi_id)
         );
         const updateResults = await Promise.all(updatePromises);
-        const failedUpdate  = updateResults.find(r => r.error);
+        const failedUpdate = updateResults.find(r => r.error);
         if (failedUpdate) throw new Error(`Gagal update koleksi: ${failedUpdate.error.message}`);
       }
 
@@ -157,6 +157,39 @@ class BARepository extends BaseRepository {
   }
 
   /**
+   * Mengambil statistik jumlah item koleksi pada BA Penyerahan per bulan
+   */
+  async getPenyerahanStatsPerMonth() {
+    const { data, error } = await this.db
+      .from('berita_acara')
+      .select('tanggal_serah_terima, items:ba_items(id)')
+      .eq('jenis_ba', 'Penyerahan');
+
+    if (error) throw error;
+
+    // Aggregasi per bulan (format YYYY-MM)
+    const monthlyData = {};
+    (data || []).forEach(ba => {
+      if (!ba.tanggal_serah_terima) return;
+      const monthStr = ba.tanggal_serah_terima.substring(0, 7); // e.g. "2026-04"
+      const itemCount = ba.items ? ba.items.length : 0;
+
+      if (!monthlyData[monthStr]) {
+        monthlyData[monthStr] = 0;
+      }
+      monthlyData[monthStr] += itemCount;
+    });
+
+    // Format menjadi array yang terurut berdasarkan bulan
+    const result = Object.keys(monthlyData).sort().map(month => ({
+      month,
+      total: monthlyData[month]
+    }));
+
+    return result;
+  }
+
+  /**
    * Menghapus Berita Acara beserta items-nya
    */
   /**
@@ -186,7 +219,7 @@ class BARepository extends BaseRepository {
       .delete()
       .eq('id', id);
     if (headerError) throw new Error(`Gagal menghapus header BA: ${headerError.message}`);
-    
+
     return true;
   }
 }
